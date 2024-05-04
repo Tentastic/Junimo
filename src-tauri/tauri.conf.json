@@ -6,25 +6,32 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "stardropclient",
+    "productName": "junimo",
     "version": "0.0.0"
   },
   "tauri": {
     "allowlist": {
       "all": false,
+      "fs": {
+        "all": true,
+        "scope": [
+          "$CONFIG/Junimo/*",
+          "$DATA/Junimo/*",
+          "$TEMP/Junimo/*"
+        ]
+      },
       "shell": {
         "all": false,
         "open": true
-      },
-      "dialog": {
-        "all": true,
       }
     },
     "windows": [
       {
-        "title": "Strardrop Client",
-        "width": 800,
-        "height": 600
+        "label": "Junimo",
+        "title": "Junimo",
+        "width": 1000,
+        "height": 600,
+        "maximized": true
       }
     ],
     "security": {
@@ -33,7 +40,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "Junimo",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
