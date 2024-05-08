@@ -1,19 +1,9 @@
-
+import Splash from '../assets/Splash.png';
 
 export default function Splashscreen() {
     return (
-        <div className="splashscreen">
-            <div className="splashscreen__content">
-                <div className="splashscreen__logo">
-                    <img src="assets/Logo.webp" alt="Logo" />
-                </div>
-                <div className="splashscreen__progress">
-                    <div className="splashscreen__progress-bar"></div>
-                </div>
-                <div className="splashscreen__message">
-                    <p>Loading...</p>
-                </div>
-            </div>
+        <div className="w-full h-full overflow-hidden overflow-y-hidden">
+            <img src={Splash} alt="Splashscreen" className="w-full h-full" />
         </div>
     )
 }

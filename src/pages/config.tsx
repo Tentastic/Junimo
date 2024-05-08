@@ -3,7 +3,7 @@ import { Input } from "@components/ui/input"
 import { Label } from "@components/ui/label"
 import { Folder } from 'lucide-react';
 import { Config as ConfigModel } from "@models/config";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {User} from "@models/user";
 import NexusMods from "@assets/NexusMods.png";
 import {Switch} from "@components/ui/switch.tsx";
@@ -70,9 +70,6 @@ export default function Config() {
     useEffect(() => {
         loadConfig();
         loadUser();
-        setTimeout(() => {
-            invoke("show_window", {label: "Config"});
-        }, 10);
     }, []);
 
     return (

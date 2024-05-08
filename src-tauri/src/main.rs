@@ -1,11 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod app;
-
 use std::{fs};
 use std::fs::File;
-use app::{mods, config, user, profiles};
+
+mod app;
+use crate::app::{mods, config, user, profiles};
 
 use tauri::{command, Manager};
 use zip::ZipArchive;
@@ -52,14 +52,14 @@ fn test(handle: tauri::AppHandle, name: &str) -> String {
 
 #[command]
 async fn show_window(window: tauri::Window, label: String) -> String {
-    window.get_window(label.as_str()).unwrap().show().unwrap(); // replace "main" by the name of your window
+    window.get_webview_window(label.as_str()).unwrap().show().unwrap(); // replace "main" by the name of your window
     "Opened".to_owned()
 }
 
 #[command]
 async fn close_splashscreen(window: tauri::Window) {
-    window.get_window("splashscreen").expect("no window labeled 'splashscreen' found").close().unwrap();
-    window.get_window("main").expect("no window labeled 'main' found").show().unwrap();
+    window.get_webview_window("splashscreen").expect("no window labeled 'splashscreen' found").close().unwrap();
+    window.get_webview_window("main").expect("no window labeled 'main' found").show().unwrap();
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -68,7 +68,8 @@ struct Payload {
     cwd: String,
 }
 
-fn main() {
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn main() {
     fs::create_dir_all(paths::mod_path()).unwrap();
 
     let (app_state, rx) = AppState::new();

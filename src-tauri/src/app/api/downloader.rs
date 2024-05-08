@@ -76,7 +76,7 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         finished: false
     };
 
-    app_handle.emit_all("download", &download).unwrap();
+    app_handle.emit("download", &download).unwrap();
 
     let zip_path = format!("{}.zip", infos.name);
     let mut temp_path = paths::temp_path();
@@ -99,17 +99,17 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         download.current = new;
         downloaded = new;
 
-        app_handle.emit_all("download", &download).unwrap();
+        app_handle.emit("download", &download).unwrap();
     }
 
     if &download.size == &download.current {
-        app_handle.emit_all("downloadfinished", &download).unwrap();
+        app_handle.emit("downloadfinished", &download).unwrap();
         let mut path = paths::mod_path();
         path.push(&zip_path);
         fs::rename(temp_path, &path).unwrap();
         download.finished = true;
         mods::unpack_manifest(&path, &infos.name);
-        app_handle.emit_all("download", &download).unwrap();
+        app_handle.emit("download", &download).unwrap();
         let console_output = format!("<span class=\"console-green\">Downloaded</span>: {}", infos.name);
         console::add_line(&app_handle, console_output);
     }
@@ -119,6 +119,6 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         mods::save_mods(mod_list);
         fs::remove_file (temp_path).unwrap();
         download.aborted = true;
-        app_handle.emit_all("download", &download).unwrap();
+        app_handle.emit("download", &download).unwrap();
     }
 }

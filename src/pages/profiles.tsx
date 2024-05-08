@@ -1,4 +1,4 @@
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {Profile} from "@models/profile.ts";
 import {useEffect, useState} from "react";
 import { Trash2, Pencil } from "lucide-react"
@@ -47,10 +47,6 @@ export default function Profiles() {
 
     useEffect(() => {
         loadProfile();
-
-        setTimeout(() => {
-            invoke("show_window", {label: "Profiles"});
-        }, 10);
     }, []);
 
     return (

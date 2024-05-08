@@ -1,5 +1,5 @@
 import {Dispatch, SetStateAction, useState} from "react";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {
     Dialog, DialogClose,
     DialogContent,

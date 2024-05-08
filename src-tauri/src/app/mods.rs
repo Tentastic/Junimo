@@ -6,7 +6,7 @@ use zip::read::ZipArchive;
 use std::{fs, thread};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, command, Manager, api};
+use tauri::{AppHandle, command, Manager};
 use url::Url;
 use crate::app::{console, mod_installation, mods, profiles};
 use crate::app::utility::{browser, paths, zips};
@@ -116,7 +116,7 @@ pub fn get_all_mods() -> Vec<ModInfo> {
         save_mods(mods);
     }
 
-    let data_raw = tauri::api::file::read_string(path).unwrap();
+    let data_raw = fs::read_to_string(path).unwrap();
     let data = data_raw.as_str();
     serde_json::from_str(data).unwrap()
 }

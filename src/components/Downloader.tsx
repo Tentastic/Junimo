@@ -1,7 +1,7 @@
 import {listen} from "@tauri-apps/api/event";
 import {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {Download} from "@models/download.ts";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {User} from "@models/user.ts";
 import {ModInfos} from "@models/mods.ts";
 import {clsx} from "clsx";

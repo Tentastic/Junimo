@@ -5,7 +5,7 @@ import {
     MenubarShortcut,
     MenubarTrigger
 } from "@components/ui/menubar.tsx";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {CopyPlus, Globe} from "lucide-react";
 
 export default function File() {

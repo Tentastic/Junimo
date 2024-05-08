@@ -12,7 +12,7 @@ pub fn empty_line(handle: &AppHandle) {
         content: "⠀".to_string(),
         mode: 2
     };
-    &handle.emit_all("console", console_content).unwrap();
+    &handle.emit("console", console_content).unwrap();
 }
 
 pub fn add_line(handle: &AppHandle, content: String) {
@@ -20,7 +20,7 @@ pub fn add_line(handle: &AppHandle, content: String) {
         content: content.to_string(),
         mode: 0
     };
-    &handle.emit_all("console", console_content).unwrap();
+    &handle.emit("console", console_content).unwrap();
 }
 
 pub fn modify_line(handle: &AppHandle, content: String) {
@@ -28,5 +28,5 @@ pub fn modify_line(handle: &AppHandle, content: String) {
         content: content.to_string(),
         mode: 1
     };
-    &handle.emit_all("console", console_content).unwrap();
+    &handle.emit("console", console_content).unwrap();
 }

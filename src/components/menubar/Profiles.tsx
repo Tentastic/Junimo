@@ -6,11 +6,11 @@ import {
     MenubarSeparator,
     MenubarTrigger
 } from "@components/ui/menubar.tsx";
-import {invoke} from "@tauri-apps/api/tauri";
 import {Profile} from "@models/profile.ts";
 import {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {Download} from "@models/download.ts";
 import {listen} from "@tauri-apps/api/event";
+import {invoke} from "@tauri-apps/api/core";
 
 
 export default function Profiles({setKey}: {setKey: Dispatch<SetStateAction<number>>}) {

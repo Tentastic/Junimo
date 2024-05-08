@@ -1,4 +1,4 @@
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {Profile} from "@models/profile.ts";
 import {Dispatch, SetStateAction, useEffect} from "react";
 import Wrapper from "@components/ui/wrapper.tsx";

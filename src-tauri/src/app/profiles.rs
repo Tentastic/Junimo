@@ -1,8 +1,9 @@
+use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use tauri::{command, Manager};
+use tauri::{command, Manager, WebviewUrl};
 use crate::app::mods;
 use crate::app::mods::{ModInfo};
 
@@ -14,7 +15,7 @@ pub struct Profile {
 }
 
 pub fn get_profile_path() -> PathBuf {
-    let mut mods_path = tauri::api::path::config_dir().unwrap();
+    let mut mods_path = dirs::config_dir().unwrap();
     mods_path.push("Junimo");
     mods_path.push("profile.json");
     mods_path
@@ -41,7 +42,7 @@ pub fn get_profiles() -> Vec<Profile> {
         save_profiles(&profiles);
     }
 
-    let data_raw = tauri::api::file::read_string(path).unwrap();
+    let data_raw = fs::read_to_string(path).unwrap();
     let data = data_raw.as_str();
     serde_json::from_str(data).unwrap()
 }
@@ -61,7 +62,7 @@ pub fn get_current_profile() -> Profile {
         save_profiles(&profiles);
     }
 
-    let data_raw = tauri::api::file::read_string(path).unwrap();
+    let data_raw = fs::read_to_string(path).unwrap();
     let data = data_raw.as_str();
     let profiles: Vec<Profile> = serde_json::from_str(data).unwrap();
 
@@ -79,11 +80,11 @@ pub fn get_current_profile() -> Profile {
 
 #[command]
 pub async fn open_profile(handle: tauri::AppHandle) {
-    tauri::WindowBuilder::new(
+    tauri::WebviewWindowBuilder::new(
         &handle,
         "Profiles",
-        tauri::WindowUrl::App("/profiles".into())
-    ).title("Profiles").visible(false).build().unwrap();
+        WebviewUrl::App("/profiles".into())
+    ).title("Profiles").transparent(true).build().unwrap();
 }
 
 #[command]
@@ -108,7 +109,7 @@ pub fn change_current_profile(handle: tauri::AppHandle, name: &str) -> Vec<Profi
             new_profiles.push(new_profile);
         }
     }
-    handle.emit_all("profile-update", &new_profiles).expect("Failed to emit event");
+    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
     save_profiles(&new_profiles);
     new_profiles
 }
@@ -132,7 +133,7 @@ pub fn add_profile(handle: tauri::AppHandle, name: &str) -> Vec<Profile> {
         currently: true
     };
     new_profiles.push(new_profile);
-    handle.emit_all("profile-update", &new_profiles).expect("Failed to emit event");
+    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
     save_profiles(&new_profiles);
     new_profiles
 }
@@ -147,7 +148,7 @@ pub fn remove_profile(handle: tauri::AppHandle, name: &str) -> Vec<Profile> {
             new_profiles.push(profile);
         }
     }
-    handle.emit_all("profile-update", &new_profiles).expect("Failed to emit event");
+    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
     save_profiles(&new_profiles);
     new_profiles
 }
@@ -169,7 +170,7 @@ pub fn modify_profile(handle: tauri::AppHandle, name: &str, new_name: &str) -> V
             new_profiles.push(profile);
         }
     }
-    handle.emit_all("profile-update", &new_profiles).expect("Failed to emit event");
+    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
     save_profiles(&new_profiles);
     new_profiles
 }

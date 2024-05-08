@@ -1,4 +1,4 @@
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {ModInfos} from "@models/mods.ts";
 import {Dispatch, SetStateAction, useEffect} from "react";
 import {clsx} from "clsx";
@@ -49,12 +49,12 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
 
     return (
         <TabsContent value="mods" className="flex-1 mt-7">
-            <div className="relative flex-grow h-full p-4 pr-0 px-3 pt-0 border-border border rounded-lg">
+            <div className="relative flex-grow h-full p-4 pr-0 px-3 pl-2 pt-0 border-border border rounded-lg">
                 <div className="absolute -top-5 left-2 bg-background p-2 px-4">
                     <h2 className="text-lg">Mods Installed</h2>
                 </div>
                 <div className={clsx(
-                    "flex flex-col gap-2 w-full h-full mt-6 pr-4 overflow-y-auto",
+                    "flex flex-col gap-2 w-full h-full mt-6 pr-4 pl-1 overflow-y-auto",
                     className
                 )}>
                     <div className="w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg flex justify-between">

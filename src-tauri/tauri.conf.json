@@ -2,31 +2,27 @@
   "build": {
     "beforeDevCommand": "bun run dev",
     "beforeBuildCommand": "bun run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
   },
-  "package": {
-    "productName": "junimo",
-    "version": "1.0.0"
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "window": {
-        "all": true
-      },
-      "fs": {
-        "all": true,
-        "scope": [
-          "$CONFIG/Junimo/*",
-          "$DATA/Junimo/*",
-          "$TEMP/Junimo/*"
-        ]
-      },
-      "shell": {
-        "all": false,
-        "open": true
-      }
+  "productName": "junimo",
+  "version": "1.0.0",
+  "identifier": "Junimo",
+  "plugins": {},
+  "app": {
+    "security": {
+      "csp": null
     },
     "windows": [
       {
@@ -36,33 +32,19 @@
         "height": 600,
         "maximized": true,
         "visible": false,
+        "transparent": true,
         "minWidth": 1000,
         "minHeight": 650
       },
       {
-        "width": 400,
-        "height": 200,
+        "width": 420,
+        "height": 160,
         "decorations": false,
         "url": "splashscreen",
         "label": "splashscreen",
         "center": true,
         "transparent": true
       }
-    ],
-    "security": {
-      "csp": null
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "Junimo",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ]
-    }
+    ]
   }
 }

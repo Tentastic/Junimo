@@ -3,7 +3,7 @@ import {Download} from "@models/download.ts";
 import {useEffect, useState} from "react";
 import {clsx} from "clsx";
 import {ConsoleModel} from "@models/console.ts";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {ModInfos} from "@models/mods.ts";
 
 export default function Console({playing, bigConsole}: {playing: boolean, bigConsole: boolean}) {

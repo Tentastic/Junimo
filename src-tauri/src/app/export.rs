@@ -1,21 +1,21 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use rfd::FileDialog;
-use tauri::{command, Window};
+use tauri::{command, WebviewUrl, Window};
 use crate::app::{console, mod_installation, mods, profiles};
 use crate::app::profiles::Profile;
 use crate::app::utility::{paths, zips};
 
 #[command]
 pub async fn open_export(handle: tauri::AppHandle) {
-    tauri::WindowBuilder::new(
+    tauri::WebviewWindowBuilder::new(
         &handle,
         "Exporter",
-        tauri::WindowUrl::App("/exporter".into())
+        WebviewUrl::App("/exporter".into())
     ).title("Export")
         .min_inner_size(600.0, 350.0)
         .inner_size(600.0, 350.0)
-        .visible(false)
+        .transparent(true)
         .build()
         .unwrap();
 }

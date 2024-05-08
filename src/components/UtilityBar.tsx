@@ -1,6 +1,6 @@
 import Logo from "@assets/Logo.webp";
 import {Globe, Pause, Play, CopyPlus} from "lucide-react";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {Dispatch, SetStateAction} from "react";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@components/ui/tooltip.tsx";
 
@@ -34,11 +34,8 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                 <div>
                     <TooltipProvider>
                         <Tooltip>
-                            <TooltipTrigger>
-                                <button onClick={openBrowser}
-                                        className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
-                                    <Globe size={24}/>
-                                </button>
+                            <TooltipTrigger onClick={openBrowser} className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
+                                <Globe size={24}/>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Open NexusMods</p>
@@ -49,11 +46,8 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                 <div>
                     <TooltipProvider>
                         <Tooltip>
-                            <TooltipTrigger>
-                                <button onClick={addMod}
-                                        className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
-                                    <CopyPlus size={24}/>
-                                </button>
+                            <TooltipTrigger onClick={addMod} className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
+                                <CopyPlus size={24}/>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Add Mod</p>
@@ -65,11 +59,8 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                     {playing ? (
                             <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger>
-                                        <button onClick={stop}
-                                                className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
-                                            <Pause size={24}/>
-                                        </button>
+                                    <TooltipTrigger onClick={stop} className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
+                                        <Pause size={24}/>
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>Stop Game</p>
@@ -80,11 +71,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                         (
                             <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger>
-                                        <button onClick={start}
-                                                className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
-                                            <Play size={24}/>
-                                        </button>
+                                    <TooltipTrigger onClick={start} className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>Start Game</p>

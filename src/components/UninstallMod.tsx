@@ -1,4 +1,4 @@
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {ModInfos} from "@models/mods.ts";
 import {Dispatch, SetStateAction} from "react";
 import {

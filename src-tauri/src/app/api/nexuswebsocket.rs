@@ -9,6 +9,7 @@ use tungstenite::protocol::CloseFrame;
 use tungstenite::protocol::frame::coding::CloseCode;
 use url::Url;
 use futures_util::{SinkExt, StreamExt};
+use tauri::WebviewUrl;
 use crate::app::util::app_path;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -120,10 +121,10 @@ pub async fn connect_user(handle: tauri::AppHandle) {
     let mut nexus_link: String = "https://www.nexusmods.com/sso?id=".to_owned();
     nexus_link.push_str(data.id.to_owned().to_string().as_str());
 
-    tauri::WindowBuilder::new(
+    tauri::WebviewWindowBuilder::new(
         &handle,
         "NexusMod",
-        tauri::WindowUrl::External(Url::parse(nexus_link.as_str()).unwrap())
+        WebviewUrl::External(Url::parse(nexus_link.as_str()).unwrap())
     ).title("Configure").build().unwrap();
 
     receive_messages(&mut websocket, sent_data).await;

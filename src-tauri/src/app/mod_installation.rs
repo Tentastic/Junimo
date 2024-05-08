@@ -124,7 +124,7 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
 
     if !has_manifest {
         console::add_line(&app_handle, "<span class=\"console-red\">[Junimo] Not a valid Stardew Valley mod!</span>".to_string());
-        &app_handle.emit_all("reload", false).unwrap();
+        &app_handle.emit("reload", false).unwrap();
         return;
     }
 
@@ -141,7 +141,7 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
     }
 
     console::modify_line(&app_handle, format!("<span class=\"console-green\">[Junimo] Mod installed</span>"));
-    &app_handle.emit_all("reload", false).unwrap();
+    &app_handle.emit("reload", false).unwrap();
 }
 
 fn copy_into_mod(directories: Vec<PathBuf>, outpath: &PathBuf) {

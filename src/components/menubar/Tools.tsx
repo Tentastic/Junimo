@@ -1,6 +1,6 @@
 import {MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger} from "@components/ui/menubar.tsx";
 import {Settings} from "lucide-react";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 
 
 export default function Tools() {

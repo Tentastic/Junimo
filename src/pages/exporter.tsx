@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {Profile} from "@models/profile.ts";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@components/ui/select.tsx";
 import {Label} from "@components/ui/label.tsx";
 import {Input} from "@components/ui/input.tsx";
@@ -54,9 +54,6 @@ export default function Exporter() {
     }
 
     useEffect(() => {
-        setTimeout(() => {
-            invoke("show_window", {label: "Exporter"});
-        }, 10);
         loadProfile();
     }, []);
 

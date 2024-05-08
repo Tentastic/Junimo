@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from "react";
 import DancingJunimo from "../assets/JunimoDance.gif";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import "../App.css";
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs"
@@ -100,7 +100,7 @@ async function add() {
 
         setTimeout(() => {
             invoke("close_splashscreen");
-        }, 3000);
+        }, 2000);
 
         return () => {
             unsubscribeEvent.then((unsub) => unsub());

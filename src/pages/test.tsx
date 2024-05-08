@@ -1,6 +1,6 @@
 import "../App.css";
 import "../styles.css";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 
 export default function Test() {
     async function addMod() {

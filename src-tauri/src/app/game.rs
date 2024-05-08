@@ -84,7 +84,7 @@ pub fn start_game(app_handle: AppHandle, app_state: State<'_, AppState>) {
     let any_missing_mods = mods::any_missing_dependencies(&mods);
     if any_missing_mods {
         console::add_line(&app_handle, "<span style=\"color: #c22f2f\">[Junimo] Missing dependencies detected. Please check your mods.</span>".to_string());
-        app_handle.emit_all("close", true).unwrap();
+        app_handle.emit("close", true).unwrap();
         return;
     }
 
@@ -194,7 +194,7 @@ fn start_smapi(app_handle: AppHandle, app_state: State<'_, AppState>) {
                         drop(child);
                         drop(pair.slave);
                         drop(pair.master);
-                        app_handle_copy.emit_all("close", true).unwrap();
+                        app_handle_copy.emit("close", true).unwrap();
                         break;
                     }
                 },

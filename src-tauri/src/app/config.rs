@@ -4,7 +4,7 @@ use std::io::{ Write};
 use std::path::{PathBuf};
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
-use tauri::{command, Window};
+use tauri::{command, path, WebviewUrl, Window};
 use winreg::enums::*;
 use winreg::RegKey;
 
@@ -22,7 +22,7 @@ impl Config {
 }
 
 fn config_path() -> PathBuf {
-    let mut config_path = tauri::api::path::config_dir().unwrap();
+    let mut config_path = dirs::config_dir().unwrap();
     config_path.push("Junimo");
     config_path.push("config.json");
     config_path
@@ -30,7 +30,7 @@ fn config_path() -> PathBuf {
 
 pub fn get_config() -> Config {
     let path = config_path();
-    let data_raw = tauri::api::file::read_string(path).unwrap();
+    let data_raw = fs::read_to_string(path).unwrap();
     let data = data_raw.as_str();
 
     serde_json::from_str(data).unwrap()
@@ -44,11 +44,11 @@ fn save_config(config: &Config) {
 
 #[command]
 pub async fn open_config(handle: tauri::AppHandle) {
-    tauri::WindowBuilder::new(
+    tauri::WebviewWindowBuilder::new(
         &handle,
         "Config",
-        tauri::WindowUrl::App("/config".into())
-    ).title("Settings").visible(false).build().unwrap();
+        WebviewUrl::App("/config".into())
+    ).title("Settings").transparent(true).build().unwrap();
 }
 
 #[command]
@@ -84,7 +84,7 @@ pub fn select_game_dir() -> String {
 }
 
 pub fn init_config(handle: &tauri::AppHandle) {
-    let mut dir_path = tauri::api::path::config_dir().unwrap();
+    let mut dir_path= dirs::config_dir().unwrap();
     dir_path.push("Junimo");
     fs::create_dir_all(dir_path).unwrap();
 
@@ -98,10 +98,10 @@ pub fn init_config(handle: &tauri::AppHandle) {
         };
         save_config(&config);
 
-        tauri::WindowBuilder::new(
+        tauri::WebviewWindowBuilder::new(
             handle,
             "Config",
-            tauri::WindowUrl::App("/config".into())
+            WebviewUrl::App("/config".into())
         ).title("Configuration").build().unwrap();
     }
 }

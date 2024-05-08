@@ -3,20 +3,20 @@ use std::path::PathBuf;
 use crate::app::utility::paths;
 
 pub fn appdata_path() -> PathBuf {
-    let mut config_path = tauri::api::path::config_dir().unwrap();
+    let mut config_path = dirs::config_dir().unwrap();
     config_path.push("Junimo");
     config_path
 }
 
 pub fn mod_path() -> PathBuf {
-    let mut mods_path = tauri::api::path::config_dir().unwrap();
+    let mut mods_path = dirs::config_dir().unwrap();
     mods_path.push("Junimo");
     mods_path.push("mods");
     mods_path
 }
 
 pub fn mod_json_path() -> PathBuf {
-    let mut mods_path = tauri::api::path::config_dir().unwrap();
+    let mut mods_path = dirs::config_dir().unwrap();
     mods_path.push("Junimo");
     mods_path.push("mods.json");
     mods_path
