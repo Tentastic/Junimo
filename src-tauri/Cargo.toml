@@ -1,8 +1,8 @@
 [package]
 name = "jumino"
-version = "0.0.0"
+version = "1.0.0"
 description = "Junimo"
-authors = ["you"]
+authors = ["Tentastic"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,7 +11,7 @@ edition = "2021"
 tauri-build = { version = "1", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = [ "fs-all", "shell-open"] }
+tauri = { version = "1", features = [ "window-all", "fs-all", "shell-open"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 zip = "1.1.2"
@@ -31,6 +31,10 @@ portable-pty = "0.8.1"
 smol = "2.0.0"
 async-std = "1.10.0"
 ansi-to-html = "0.2.1"
+anyhow = "1.0.82"
+sysinfo = "0.30.11"
+walkdir = "2.3"
+json-strip-comments = "1.0.2"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
