@@ -1,6 +1,8 @@
 use url::Url;
 use crate::app::api::nexuswebsocket;
 use crate::app::mods::ModInfo;
+use tauri::http::{Request};
+use tauri::http::method::Method;
 
 pub fn get_url(url_str: &str) -> String{
     let url = Url::parse(url_str).unwrap();
@@ -17,8 +19,8 @@ pub fn get_url(url_str: &str) -> String{
         api_url
     }
     else {
-        let (key1, value1) = query_pairs.next().unwrap();
-        let (key2, value2) = query_pairs.next().unwrap();
+        let (_key1, value1) = query_pairs.next().unwrap();
+        let (_key2, value2) = query_pairs.next().unwrap();
 
         let api_url = format!(
             "https://api.nexusmods.com/v1/games/{}/mods/{}/files/{}/download_link.json?key={}&expires={}",
@@ -48,8 +50,6 @@ pub async fn get_infos(url_str: &str) -> Option<ModInfo> {
         .send()
         .await
         .unwrap();
-
-    println!("Scheme: {}", &api_url);
 
     if res.status().is_success() {
         let body = res.text().await.unwrap();
