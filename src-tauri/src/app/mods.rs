@@ -1,22 +1,22 @@
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use rfd::FileDialog;
 use zip::read::ZipArchive;
-use std::{env, fs};
-use futures_util::StreamExt;
+use std::{fs, thread};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, command, Manager};
-use crate::app::{api, profiles};
-
-
+use tauri::{AppHandle, command, Manager, api};
+use url::Url;
+use crate::app::{console, mod_installation, mods, profiles};
+use crate::app::utility::{browser, paths, zips};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModInfo {
     pub name: String,
     summary: String,
     description: String,
-    picture_url: String,
+    picture_url: Option<String>,
     mod_downloads: u64,
     mod_unique_downloads: u64,
     uid: u64,
@@ -37,6 +37,9 @@ pub struct ModInfo {
     contains_adult_content: bool,
     status: String,
     available: bool,
+    pub unique_id: Option<String>,
+    more_info: Option<String>,
+    dependencies: Option<Vec<Dependency>>,
 }
 
 impl PartialEq for ModInfo {
@@ -45,29 +48,55 @@ impl PartialEq for ModInfo {
     }
 }
 
-pub fn get_path() -> PathBuf {
-    let mut mods_path = tauri::api::path::config_dir().unwrap();
-    mods_path.push("Junimo");
-    mods_path.push("mods");
-    mods_path
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Manifest {
+    #[serde(rename = "Name")]
+    name: String,
+    #[serde(rename = "Author")]
+    author: String,
+    #[serde(rename = "Version")]
+    version: String,
+    #[serde(rename = "Description")]
+    description: String,
+    #[serde(rename = "UniqueID")]
+    pub unique_id: String,
+    #[serde(rename = "EntryDll")]
+    entry_dll: Option<String>,
+    #[serde(rename = "MinimumApiVersion")]
+    minimum_api_version: Option<String>,
+    #[serde(rename = "UpdateKeys")]
+    update_keys: Option<Vec<String>>,
+    #[serde(rename = "ContentPackFor")]
+    pub content_pack: Option<Dependency>,
+    #[serde(rename = "Dependencies")]
+    pub dependencies: Option<Vec<Dependency>>,
 }
 
-pub fn mods_path() -> PathBuf {
-    let mut mods_path = tauri::api::path::config_dir().unwrap();
-    mods_path.push("Junimo");
-    mods_path.push("mods.json");
-    mods_path
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Dependency {
+    #[serde(rename = "UniqueID")]
+    pub unique_id: String,
+    #[serde(rename = "MinimumVersion")]
+    minimum_version: Option<String>,
+    #[serde(rename = "IsRequired")]
+    is_required: Option<bool>,
 }
 
 pub fn save_mods(mod_infos: Vec<ModInfo>) {
     let json = serde_json::to_string(&mod_infos).unwrap();
-    let mut file = File::create(mods_path()).expect("Fail");
+    let mut file = File::create(paths::mod_json_path()).expect("Fail");
     file.write_all(json.as_bytes()).unwrap();
 }
 
 #[command]
-pub fn get_mods() -> Vec<ModInfo> {
-    let path = mods_path();
+pub async fn open_search_browser(handle: AppHandle) {
+    let nexus_link = "https://www.nexusmods.com/stardewvalley";
+    browser::open_url(nexus_link);
+}
+
+#[command]
+pub fn get_installed_mods() -> Vec<ModInfo> {
+    let path = paths::mod_json_path();
     let current_profile = profiles::get_current_profile();
 
     if !path.exists() {
@@ -79,9 +108,8 @@ pub fn get_mods() -> Vec<ModInfo> {
     all_mods.iter().filter(|mod_info| !current_profile.mods.contains(mod_info)).cloned().collect()
 }
 
-#[command]
 pub fn get_all_mods() -> Vec<ModInfo> {
-    let path = mods_path();
+    let path = paths::mod_json_path();
 
     if !path.exists() {
         let mods: Vec<ModInfo> = Vec::new();
@@ -93,8 +121,25 @@ pub fn get_all_mods() -> Vec<ModInfo> {
     serde_json::from_str(data).unwrap()
 }
 
+pub fn insert_mod_info(infos: &ModInfo) {
+    let mut mod_list = get_all_mods();
+
+    if mod_list.iter().any(|mod_info| mod_info.name == infos.name && mod_info.version == infos.version) {
+        return;
+    }
+    else if mod_list.iter().any(|mod_info| mod_info.name == infos.name && mod_info.version != infos.version) {
+        let index = mod_list.iter().position(|mod_info| mod_info.name == infos.name).unwrap();
+        mod_list[index] = infos.clone();
+        save_mods(mod_list);
+    }
+    else {
+        mod_list.push(infos.clone());
+        save_mods(mod_list);
+    }
+}
+
 #[command]
-pub fn add_mod() {
+pub fn add_mod(app_handle: AppHandle) {
     let file = FileDialog::new()
         .add_filter("zip", &["zip"])
         .add_filter("rar", &["rar"])
@@ -102,55 +147,274 @@ pub fn add_mod() {
         .pick_file();
 
     if let Some(path) = file {
-        let zip_file_path = path;
-        let output_folder_path = get_path();
-
-        let zip_file = File::open(&zip_file_path).unwrap();
-        let zip_archive = ZipArchive::new(zip_file).unwrap();
-
-        extract_zip(zip_archive, &output_folder_path).unwrap();
+        mod_installation::start_installation(app_handle.clone(), &path);
     } else {
         println!("No file was selected.");
     }
 }
 
 #[command]
-pub fn uninstall_mod(mod_name: &str) {
-    let mut mods = get_mods();
-    mods.retain(|mod_info| mod_info.name != mod_name);
-    save_mods(mods);
+pub fn uninstall_mods(app_handle: AppHandle, mods: Vec<&str>) {
+    for mod_name in mods {
+        uninstall_mod(app_handle.clone(), mod_name);
+    }
 }
 
-fn extract_zip<R: io::Read + io::Seek>(mut archive: ZipArchive<R>, destination: &Path) -> zip::result::ZipResult<()> {
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = match file.enclosed_name() {
-            Some(path) => destination.join(path),
-            None => continue,
-        };
+#[command]
+pub fn uninstall_mod(app_handle: AppHandle, name: &str) {
+    let mut mods = get_all_mods();
+    mods.retain(|mod_info| mod_info.name != name);
+    save_mods(mods);
 
-        if file.name().ends_with('/') {
-            if !outpath.exists() {
-                fs::create_dir_all(&outpath)?;
-            }
+    let mut profile = profiles::get_profiles();
+    let mut new_profiles = Vec::new();
+    for p in profile {
+        if p.mods.iter().any(|mod_info| mod_info.name == name) {
+            let mut new_mods = p.mods.clone();
+            new_mods.retain(|mod_info| mod_info.name != name);
+            let new_profile = profiles::Profile {
+                name: p.name,
+                mods: new_mods,
+                currently: p.currently
+            };
+            new_profiles.push(new_profile);
         } else {
-            if let Some(parent) = outpath.parent() {
-                if !parent.exists() {
-                    fs::create_dir_all(parent)?;
-                }
+            new_profiles.push(p);
+        }
+    }
+    profiles::save_profiles(&new_profiles);
+
+    let mut mod_path = paths::mod_path();
+    let path = format!("{}/{}.zip", mod_path.display(), name);
+    if Path::new(&path).exists() {
+        fs::remove_file(path).expect("Failed to remove file");
+    }
+}
+
+pub fn unpack_manifest(zip_path: &PathBuf, name: &str) {
+    let path = paths::mod_path();
+    let zip = File::open(zip_path).unwrap();
+    let manifest_archive = ZipArchive::new(zip).unwrap();
+
+    zips::extract_manifest(manifest_archive, &path, name).unwrap();
+    insert_unique(name);
+}
+
+pub fn get_manifest(path: &PathBuf) -> Manifest {
+    let mut file = File::open(path).unwrap();
+    let mut output = String::new();
+    file.read_to_string(&mut output).unwrap();
+    output = output.replace("UniqueId", "UniqueID");
+    json_strip_comments::strip(&mut output).unwrap();
+    match extract_json(&output) {
+        Some(json) =>  output = json,
+        None => println!("No JSON found"),
+    }
+    println!("{}", output);
+    serde_json::from_str(&output).unwrap()
+}
+
+pub fn get_dependencies(path: &PathBuf) -> Option<Vec<Dependency>> {
+    let mut file = File::open(path).unwrap();
+    let mut output = String::new();
+    file.read_to_string(&mut output).unwrap();
+    output = output.replace("UniqueId", "UniqueID");
+    json_strip_comments::strip(&mut output).unwrap();
+    match extract_json(&output) {
+        Some(json) =>  {
+            output = json;
+            let manifest: Manifest = serde_json::from_str(&output).unwrap();
+            manifest.dependencies
+        },
+        None => None
+    }
+}
+
+pub fn add_mod_through_manifest(path: &PathBuf) -> String {
+    let mut file = File::open(path).unwrap();
+    let mut output = String::new();
+    file.read_to_string(&mut output).unwrap();
+    output = output.replace("UniqueId", "UniqueID");
+    json_strip_comments::strip(&mut output).unwrap();
+    match extract_json(&output) {
+        Some(json) =>  output = json,
+        None => println!("No JSON found"),
+    }
+    let manifest: Manifest = serde_json::from_str(&output).unwrap();
+
+    let mut dependencies: Vec<Dependency> = Vec::new();
+
+    match manifest.dependencies {
+        Some(deps) => {
+            for dep in deps {
+                dependencies.push(dep);
             }
-            let mut outfile = File::create(&outpath)?;
-            io::copy(&mut file, &mut outfile)?;
+        },
+        None => {
+            println!("No dependencies found");
+        }
+    }
+
+    match manifest.content_pack {
+        Some(content_pack) => {
+            dependencies.push(content_pack);
+        },
+        None => {
+            println!("No content pack found");
+        }
+    }
+
+    let new_mod = ModInfo {
+        name: manifest.name,
+        summary: manifest.description.clone(),
+        description: manifest.description,
+        picture_url: None,
+        mod_downloads: 0,
+        mod_unique_downloads: 0,
+        uid: 0,
+        mod_id: 0,
+        game_id: 1303,
+        allow_rating: false,
+        domain_name: "stardewvalley".to_owned(),
+        category_id: 0,
+        version: manifest.version,
+        endorsement_count: 0,
+        created_timestamp: 0,
+        created_time: "".to_owned(),
+        updated_timestamp: 0,
+        updated_time: "".to_owned(),
+        author: manifest.author.clone(),
+        uploaded_by: manifest.author,
+        uploaded_users_profile_url: "".to_owned(),
+        contains_adult_content: false,
+        status: "".to_owned(),
+        available: true,
+        unique_id: Some(manifest.unique_id),
+        more_info: None,
+        dependencies: Some(dependencies)
+    };
+
+    insert_mod_info(&new_mod);
+    new_mod.name
+}
+
+fn extract_json(input: &str) -> Option<String> {
+    let start_pos = input.find('{');
+    let end_pos = input.rfind('}');
+
+    match (start_pos, end_pos) {
+        (Some(start), Some(end)) if end > start => {
+            Some(input[start..=end].to_string())
+        },
+        _ => None, // Return None if no valid JSON is found
+    }
+}
+
+pub fn insert_unique(name: &str) {
+    let mods = get_all_mods();
+    let path = paths::mod_path();
+
+    let manifest_path = format!("{}/{}/manifest.json", path.display(), name);
+    let mut file = File::open(manifest_path).unwrap();
+    let mut output = String::new();
+    file.read_to_string(&mut output).unwrap();
+    output = output.replace("UniqueId", "UniqueID");
+    json_strip_comments::strip(&mut output).unwrap();
+    match extract_json(&output) {
+        Some(json) =>  output = json,
+        None => println!("No JSON found"),
+    }
+    let manifest: Manifest = serde_json::from_str(&output).unwrap();
+
+    let mut new_mods = Vec::new();
+    for mod_info in mods {
+        if mod_info.name == name {
+            let mut new_mod_info = mod_info.clone();
+            new_mod_info.unique_id = Some(manifest.unique_id.clone());
+            new_mod_info.dependencies = manifest.dependencies.clone();
+            new_mods.push(new_mod_info);
+        }
+        else {
+            new_mods.push(mod_info);
+        }
+    }
+
+    save_mods(new_mods);
+}
+
+pub fn check_dependencies(mods: Vec<ModInfo>) -> Vec<ModInfo> {
+    let cloned_mods = mods.clone();
+    let mut new_modinfo = Vec::new();
+
+    for mut mod_info in mods.clone() {
+        if (mod_info.dependencies.is_none()) {
+            new_modinfo.push(mod_info.clone());
+            continue;
         }
 
-        // Set the permissions if on Unix
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if let Some(mode) = file.unix_mode() {
-                std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode))?;
+        match &mod_info.dependencies {
+            Some(dependencies) => {
+                let mut mode = 0;
+                for dependency in dependencies {
+                    if cloned_mods.iter().any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone())) {
+                        mod_info.more_info = None;
+                        continue;
+                    }
+                    if dependency.is_required == None || dependency.is_required == Some(true) {
+                        let split = dependency.unique_id.split('.').collect::<Vec<&str>>();
+                        mod_info.more_info = Some(format!("<span style=\"color: #cf3838\">Missing mod: {}</span>", split[split.len() - 1]));
+                        break;
+                    }
+                    else {
+                        if mode == 2 {
+                            continue;
+                        }
+
+                        let split = dependency.unique_id.split('.').collect::<Vec<&str>>();
+                        mod_info.more_info = Some(format!("<span style=\"color: #f5d442\">Recommended mod: {}</span>", split[split.len() - 1]));
+                        continue;
+                    }
+                }
+                new_modinfo.push(mod_info.clone());
+            }
+            None => {
+                println!("Hier 3");
             }
         }
     }
-    Ok(())
+
+    new_modinfo
+}
+
+pub fn any_missing_dependencies(mods: &Vec<ModInfo>) -> bool {
+    let cloned_mods = mods.clone();
+    let mut new_modinfo = Vec::new();
+
+    for mut mod_info in mods.clone() {
+        if (mod_info.dependencies.is_none()) {
+            new_modinfo.push(mod_info.clone());
+            continue;
+        }
+
+        match &mod_info.dependencies {
+            Some(dependencies) => {
+                for dependency in dependencies {
+                    if cloned_mods.iter().any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone())) {
+                        continue;
+                    }
+                    if dependency.is_required == None || dependency.is_required == Some(true) {
+                        return true;
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                new_modinfo.push(mod_info.clone());
+            }
+            None => {
+                println!("Hier 3");
+            }
+        }
+    }
+    false
 }
