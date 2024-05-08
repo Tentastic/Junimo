@@ -1,7 +1,7 @@
 use std::{env, fs};
 use std::fs::File;
 use std::io::{ Write};
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
 use tauri::{command, Window};
@@ -48,7 +48,7 @@ pub async fn open_config(handle: tauri::AppHandle) {
         &handle,
         "Config",
         tauri::WindowUrl::App("/config".into())
-    ).title("Configure").build().unwrap();
+    ).title("Settings").visible(false).build().unwrap();
 }
 
 #[command]
