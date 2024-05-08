@@ -5,13 +5,16 @@ import Test from "./pages/test";
 import "./styles.css";
 import {BrowserRouter, Routes, Route} from "react-router-dom";
 import Config from "./pages/config.tsx";
+import Profiles from "./pages/profiles.tsx";
+import Exporter from "./pages/exporter.tsx";
+import Splashscreen from "./pages/splashscreen.tsx";
 
 document.addEventListener('DOMContentLoaded', function () {
     const currentTheme = localStorage.getItem('theme');
 
     if (currentTheme === null) {
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.body.classList.add('dark');
+            document.documentElement.classList.add('dark');
             localStorage.setItem('theme', 'dark');
         }
         else {
@@ -21,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (currentTheme !== 'light') {
-        document.body.classList.add(currentTheme);
+        document.documentElement.classList.add(currentTheme);
     }
 });
 
@@ -30,8 +33,11 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <BrowserRouter>
           <Routes>
               <Route index element={<Home />} />
+              <Route path="splashscreen" element={<Splashscreen />} />
               <Route path="test" element={<Test />} />
               <Route path="config" element={<Config />} />
+              <Route path="profiles" element={<Profiles />} />
+              <Route path="exporter" element={<Exporter />} />
           </Routes>
       </BrowserRouter>
   </React.StrictMode>,
