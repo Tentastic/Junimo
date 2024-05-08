@@ -3,7 +3,7 @@ import {MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigg
 
 export default function Theme() {
     function setTheme(color: string) {
-        const html = document.body;
+        const html = document.documentElement;
         const current = localStorage.getItem('theme');
         if (current !== null) html.classList.remove(current);
         html.classList.add(color);
