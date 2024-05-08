@@ -10,7 +10,14 @@ export default function Wrapper({mod, selected}: {mod: ModInfos, selected: boole
                  selected ? "text-lime-300 ring-1 ring-lime-300" : "",
                  mod.invisible && "hidden"
              )}>
-            <p>{mod.name}</p>
+            <div className="flex gap-4">
+                <p>{mod.name}</p>
+                {mod.more_info !== undefined ? (
+                    <div dangerouslySetInnerHTML={{__html: mod.more_info}} />
+                ) : (
+                    <></>
+                )}
+            </div>
             <p className="text-zinc-500">{mod.version}</p>
         </div>
     )
