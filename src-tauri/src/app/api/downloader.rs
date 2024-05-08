@@ -1,13 +1,14 @@
-use std::fs;
+use std::{fs, thread};
 use std::fs::File;
 use std::io::Write;
-use std::sync::{Arc, Mutex};
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, command, Manager, State};
-use crate::app::api::{downloader, mods_api, nexuswebsocket};
+use crate::app::api::{mods_api, nexuswebsocket};
 use crate::app::app_state::AppState;
-use crate::app::mods::{get_mods, get_path, ModInfo};
+use crate::app::{console, mods};
+use crate::app::mods::{get_all_mods, ModInfo};
+use crate::app::utility::paths;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DownloadPaths {
@@ -20,7 +21,9 @@ struct DownloadPaths {
 pub struct Download {
     pub name: String,
     pub size: u64,
-    pub current: u64
+    pub current: u64,
+    pub aborted: bool,
+    pub finished: bool
 }
 
 #[command]
@@ -30,7 +33,6 @@ pub fn stop_download(app_state: State<'_, AppState>) {
 }
 
 pub async fn start_download(app_handle: &AppHandle, url_str: &str, app_state: AppState) {
-    println!("Scheme: {}", url_str);
     let key = nexuswebsocket::load_key();
 
     let client = reqwest::Client::new();
@@ -48,22 +50,10 @@ pub async fn start_download(app_handle: &AppHandle, url_str: &str, app_state: Ap
 
         let infos = mods_api::get_infos(url_str).await.unwrap();
 
-        let mut mod_list = get_mods();
+        mods::insert_mod_info(&infos);
 
-        if mod_list.iter().any(|mod_info| mod_info.name == infos.name && mod_info.version == infos.version) {
-            return;
-        }
-        else if mod_list.iter().any(|mod_info| mod_info.name == infos.name && mod_info.version != infos.version) {
-            let index = mod_list.iter().position(|mod_info| mod_info.name == infos.name).unwrap();
-            mod_list[index] = infos.clone();
-            crate::app::mods::save_mods(mod_list);
-        }
-        else {
-            mod_list.push(infos.clone());
-            crate::app::mods::save_mods(mod_list);
-        }
-
-        download(app_handle, &paths[0].URI, infos, app_state).await;
+        let handle_clone = app_handle.clone();
+        download(&handle_clone, &paths[0].URI, infos, app_state).await;
     }
 }
 
@@ -81,18 +71,18 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
     let mut download: Download = Download {
         name: infos.name.to_owned(),
         size: total_size,
-        current: 0
+        current: 0,
+        aborted: false,
+        finished: false
     };
 
     app_handle.emit_all("download", &download).unwrap();
 
     let zip_path = format!("{}.zip", infos.name);
-    let mut mods_path = std::env::temp_dir();
-    mods_path.push("Junimo");
-    fs::create_dir_all(&mods_path).unwrap();
-    mods_path.push(&zip_path);
+    let mut temp_path = paths::temp_path();
+    temp_path.push(&zip_path);
 
-    let mut file = File::create(&mods_path).unwrap();
+    let mut file = File::create(&temp_path).unwrap();
 
     let mut downloaded: u64 = 0;
     let mut stream = response.bytes_stream();
@@ -112,17 +102,23 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         app_handle.emit_all("download", &download).unwrap();
     }
 
-    if (&download.size == &download.current) {
+    if &download.size == &download.current {
         app_handle.emit_all("downloadfinished", &download).unwrap();
-        let mut path = get_path();
+        let mut path = paths::mod_path();
         path.push(&zip_path);
-        fs::rename(mods_path, path).unwrap();
+        fs::rename(temp_path, &path).unwrap();
+        download.finished = true;
+        mods::unpack_manifest(&path, &infos.name);
+        app_handle.emit_all("download", &download).unwrap();
+        let console_output = format!("<span class=\"console-green\">Downloaded</span>: {}", infos.name);
+        console::add_line(&app_handle, console_output);
     }
     else {
-        fs::remove_file (mods_path).unwrap();
-        app_handle.emit_all("downloadfailed", &download).unwrap();
+        let mut mod_list = get_all_mods();
+        mod_list.retain(|mod_info| mod_info.name != infos.name);
+        mods::save_mods(mod_list);
+        fs::remove_file (temp_path).unwrap();
+        download.aborted = true;
+        app_handle.emit_all("download", &download).unwrap();
     }
-
-    let console_output = format!("<span class=\"console-green\">Downloaded</span>: {}", infos.name);
-    app_handle.emit_all("console", console_output).unwrap();
 }
