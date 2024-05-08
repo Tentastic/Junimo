@@ -52,6 +52,11 @@ export default function Config() {
             setUser(user);
     }
 
+    async function logoutUser() {
+        await invoke('disconnect_user');
+        setUser(undefined);
+    }
+
     async function registerNxm() {
         await invoke('register_nxm');
     }
@@ -65,14 +70,17 @@ export default function Config() {
     useEffect(() => {
         loadConfig();
         loadUser();
+        setTimeout(() => {
+            invoke("show_window", {label: "Config"});
+        }, 10);
     }, []);
 
     return (
         <div className="w-full h-[100vh] p-6 flex flex-col justify-start items-start">
-            <h1 className="text-3xl text-left font-bold mb-4">Setup Configurations</h1>
+            <h1 className="text-3xl text-left font-bold mb-4 text-primary">Settings</h1>
             <div className="w-full flex flex-col gap-4">
                 <div className="flex flex-col">
-                    <Label htmlFor="path" className="text-base ml-1">Game Path</Label>
+                    <Label htmlFor="path" className="ml-1 mb-2 text-xl text-muted-foreground">Game Path</Label>
                     <div className="flex gap-2">
                         <Input id="path" placeholder="Please enter your game path..."
                                value={gamePath} onChange={x => setGamePath(x.target.value)} />
@@ -82,6 +90,7 @@ export default function Config() {
                         </button>
                     </div>
                 </div>
+                <div className="w-full h-[2px] border-lg bg-muted" />
                 <div>
                     {user === undefined || user === null ? (
                             <div className="flex gap-1 items-center">
@@ -94,13 +103,20 @@ export default function Config() {
                             </div>
                         ) :
                         (
-                            <div>
-                                <div className="flex gap-2">
-                                    <img src={NexusMods} alt="NexusMods Logo" className="h-6 w-6"/>
-                                    <p>Logged in as: <span className="font-bold">{user.name}</span></p>
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-xl text-muted-foreground">NexusMods Settings</h2>
+                                <div className="flex gap-2 items-center justify-between rounded-lg p-2 bg-muted">
+                                    <div className="flex items-center gap-2 text-lg">
+                                        <img src={NexusMods} alt="NexusMods Logo" className="h-8 w-8"/>
+                                        <p>Logged in as: <span className="font-bold">{user.name}</span></p>
+                                    </div>
+                                    <button onClick={logoutUser}
+                                            className="p-1 px-5 flex gap-2 transition duration-150 bg-destructive hover:brightness-75 rounded">
+                                        Logout
+                                    </button>
                                 </div>
                                 <div className="flex gap-2 items-center mt-4">
-                                    <Switch checked={nmxSwitch} onCheckedChange={x => setNmxSwitch(!nmxSwitch)} />
+                                    <Switch checked={nmxSwitch} onCheckedChange={x => setNmxSwitch(!nmxSwitch)}/>
                                     Let Junimo handle the
                                     <div className="bg-[#d98f40] p-1 px-2 w-fit flex gap-1">
                                         <img src={NexusMods} alt="Nexus Mods Mod Manager Icon" className="h-full w-6" />
