@@ -75,7 +75,7 @@
   }
 
   .black {
-    --background: #080809;
+    --background: #000000;
     --foreground: #fafafa;
 
     --card: #09090b;
@@ -119,6 +119,10 @@
   }
 }
 
+html {
+  background-color: black;
+}
+
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -149,6 +153,10 @@
 
 .console-blue {
   color: #2196f3;
+}
+
+.console-gray {
+  color: #828282;
 }
 
 ::-webkit-scrollbar {
