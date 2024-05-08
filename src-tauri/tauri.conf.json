@@ -7,11 +7,14 @@
   },
   "package": {
     "productName": "junimo",
-    "version": "0.0.0"
+    "version": "1.0.0"
   },
   "tauri": {
     "allowlist": {
       "all": false,
+      "window": {
+        "all": true
+      },
       "fs": {
         "all": true,
         "scope": [
@@ -27,11 +30,23 @@
     },
     "windows": [
       {
-        "label": "Junimo",
+        "label": "main",
         "title": "Junimo",
         "width": 1000,
         "height": 600,
-        "maximized": true
+        "maximized": true,
+        "visible": false,
+        "minWidth": 1000,
+        "minHeight": 650
+      },
+      {
+        "width": 400,
+        "height": 200,
+        "decorations": false,
+        "url": "splashscreen",
+        "label": "splashscreen",
+        "center": true,
+        "transparent": true
       }
     ],
     "security": {
