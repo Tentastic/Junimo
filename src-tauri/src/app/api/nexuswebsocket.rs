@@ -106,7 +106,7 @@ fn save_key(key: String) {
 
 pub async fn connect_user(handle: tauri::AppHandle) {
     let url = Url::parse("wss://sso.nexusmods.com").unwrap();
-    let (mut websocket, response) = connect_async(url).await.expect("Failed to connect");
+    let (mut websocket, _response) = connect_async(url).await.expect("Failed to connect");
 
     let data = load_binary();
     let json_string = serde_json::to_string(&data).unwrap();
