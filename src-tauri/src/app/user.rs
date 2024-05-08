@@ -1,3 +1,4 @@
+use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use serde::{Deserialize, Serialize};
@@ -42,6 +43,13 @@ fn save_user(user: &User) {
 pub async fn connect_user(handle: tauri::AppHandle) -> Option<User> {
     nexuswebsocket::connect_user(handle).await;
     user_info().await
+}
+
+#[command]
+pub async fn disconnect_user() {
+    fs::remove_file(app_path("key.stp")).unwrap();
+    fs::remove_file(app_path("connection.stp")).unwrap();
+    fs::remove_file(app_path("user.stp")).unwrap();
 }
 
 async fn user_info() -> Option<User> {
