@@ -1,6 +1,4 @@
-use tauri::{State, Window};
 use std::sync::{Arc, Mutex};
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 #[derive(Clone)]
