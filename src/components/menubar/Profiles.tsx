@@ -18,10 +18,11 @@ export default function Profiles({setKey}: {setKey: Dispatch<SetStateAction<numb
     const [selectedProfile, setSelectedProfile] = useState<string>("Default");
 
     async function loadProfile() {
+        console.log("Select")
         const loadedProfiles = await invoke<Profile[]>('get_profiles');
-        for (let profile of profiles) {
-            if (profile.currently) {
-                setSelectedProfile(profile.name);
+        for (let i = 0; i < loadedProfiles.length; i++) {
+            if (loadedProfiles[i].currently) {
+                setSelectedProfile(loadedProfiles[i].name);
                 break;
             }
         }
@@ -34,8 +35,8 @@ export default function Profiles({setKey}: {setKey: Dispatch<SetStateAction<numb
 
     async function changeProfile(name: string) {
         const newLoadedProfiles = await invoke<Profile[]>('change_current_profile', {name: name});
-        setProfiles(newLoadedProfiles);
         setSelectedProfile(name);
+        setProfiles(newLoadedProfiles);
         setKey(prevKey => prevKey + 1);
     }
 
