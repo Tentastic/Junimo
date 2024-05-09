@@ -103,6 +103,9 @@ fn export_all(handle: tauri::AppHandle, path: &str) {
         export_mod_path.push("mods");
         fs::create_dir_all(&export_mod_path).unwrap();
         export_mod_path.push(format!("{}.zip", mod_info.name));
+        if !mod_path.exists() {
+            continue;
+        }
         fs::copy(&mod_path, &export_mod_path).unwrap();
     }
 
