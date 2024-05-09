@@ -12,11 +12,15 @@ export default function Tools() {
         await invoke("open_export")
     }
 
+    async function openImport() {
+        await invoke("open_import")
+    }
+
     return (
         <MenubarMenu>
             <MenubarTrigger>Tools</MenubarTrigger>
             <MenubarContent>
-                <MenubarItem>Import</MenubarItem>
+                <MenubarItem onClick={openImport}>Import</MenubarItem>
                 <MenubarItem onClick={openExport}>Export</MenubarItem>
                 <MenubarSeparator />
                 <MenubarItem onClick={openConfig}>
