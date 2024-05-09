@@ -30,14 +30,6 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
         setSelected([]);
     }
 
-    useEffect(() => {
-        getMods();
-
-        return () => {
-            setSelected([]);
-        }
-    }, []);
-
     function setIndex(index: number) {
         if (selected.includes(index)) {
             setSelected(selected.filter(i => i !== index));
@@ -46,6 +38,15 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
             setSelected([...selected, index]);
         }
     }
+
+    useEffect(() => {
+        getMods();
+        setSelected([]);
+
+        return () => {
+            setSelected([]);
+        }
+    }, []);
 
     return (
         <TabsContent value="mods" className="flex-1 mt-7">
@@ -61,9 +62,9 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
                         <Input placeholder="Search..." onChange={x => doSearch(x.target.value)}/>
                     </div>
                     {modList.map((mod, index) => (
-                        <ContextMenu>
+                        <ContextMenu key={index}>
                             <ContextMenuTrigger>
-                                <div key={index} onClick={i => setIndex(index)}>
+                                <div onClick={i => setIndex(index)}>
                                     <Wrapper mod={mod} selected={selected.includes(index)}/>
                                 </div>
                             </ContextMenuTrigger>
