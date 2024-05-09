@@ -7,8 +7,7 @@ export default function Wrapper({mod, selected}: {mod: ModInfos, selected: boole
         <div
              className={clsx(
                  "w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg p-1 px-2 flex justify-between",
-                 selected ? "text-lime-300 ring-1 ring-lime-300" : "",
-                 mod.invisible && "hidden"
+                 selected ? "text-lime-300 ring-1 ring-lime-300" : ""
              )}>
             <div className="flex gap-4">
                 <p>{mod.name}</p>

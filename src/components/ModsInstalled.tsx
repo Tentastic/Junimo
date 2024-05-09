@@ -8,6 +8,12 @@ import Wrapper from "@components/ui/wrapper.tsx";
 import {TabsContent} from "@components/ui/tabs.tsx";
 import UninstallMod from "@components/UninstallMod.tsx";
 import UninstallAll from "@components/UninstallAll.tsx";
+import {
+    DropdownMenu,
+    DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuLabel, DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@components/ui/dropdown-menu.tsx";
 
 
 export default function ModsInstalled({setKey, modList, setModList, selected, setSelected, className}:
@@ -49,20 +55,43 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
     }, []);
 
     return (
-        <TabsContent value="mods" className="flex-1 mt-7">
-            <div className="relative flex-grow h-full p-4 pr-0 px-3 pl-2 pt-0 border-border border rounded-lg">
-                <div className="absolute -top-5 left-2 bg-background p-2 px-4">
-                    <h2 className="text-lg">Mods Installed</h2>
+        <TabsContent value="mods" className={clsx(
+            "relative w-full flex flex-col border-border pl-3 border rounded-lg overflow-auto",
+            className
+        )}>
+            <div className="absolute -top-5 bg-background left-2 p-2 px-4">
+                <h2 className="text-lg">Current Mods</h2>
+            </div>
+            <div className="flex gap-2 mt-6 mx-2 mr-6">
+                <div
+                    className="w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg flex justify-between">
+                    <Input placeholder="Search..." onChange={x => doSearch(x.target.value)}/>
                 </div>
-                <div className={clsx(
-                    "flex flex-col gap-2 w-full h-full mt-6 pr-4 pl-1 overflow-y-auto",
-                    className
-                )}>
-                    <div className="w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg flex justify-between">
-                        <Input placeholder="Search..." onChange={x => doSearch(x.target.value)}/>
-                    </div>
-                    {modList.map((mod, index) => (
-                        <ContextMenu key={index}>
+                <DropdownMenu>
+                    <DropdownMenuTrigger>
+                        <button
+                            className="w-12 h-full rounded transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center">
+                            Sort
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem>Profile</DropdownMenuItem>
+                        <DropdownMenuItem>Billing</DropdownMenuItem>
+                        <DropdownMenuItem>Team</DropdownMenuItem>
+                        <DropdownMenuItem>Subscription</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+            <div className={clsx(
+                "flex flex-col gap-2 w-full mt-2 overflow-auto p-1 pr-4"
+            )}>
+                {modList.map((mod, index) => (
+                    <div key={index} className={clsx(
+                        mod.invisible && "hidden"
+                    )}>
+                        <ContextMenu>
                             <ContextMenuTrigger>
                                 <div onClick={i => setIndex(index)}>
                                     <Wrapper mod={mod} selected={selected.includes(index)}/>
@@ -70,12 +99,12 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
                             </ContextMenuTrigger>
                             <ContextMenuContent>
                                 <ContextMenuItem onClick={unselectAll}>Unselect all</ContextMenuItem>
-                                <UninstallMod name={mod.name} setKey={setKey} />
-                                <UninstallAll mods={modList} numbers={selected} setKey={setKey} />
+                                <UninstallMod name={mod.name} setKey={setKey}/>
+                                <UninstallAll mods={modList} numbers={selected} setKey={setKey}/>
                             </ContextMenuContent>
                         </ContextMenu>
-                    ))}
-                </div>
+                    </div>
+                ))}
             </div>
         </TabsContent>
     )
