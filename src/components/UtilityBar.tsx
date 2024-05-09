@@ -72,6 +72,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger onClick={start} className="p-2 rounded-lg transition duration-150 bg-muted hover:bg-muted-dark">
+                                        <Play size={24}/>
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>Start Game</p>
