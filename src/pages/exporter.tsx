@@ -61,7 +61,7 @@ export default function Exporter() {
         <div className="w-full h-[100vh] p-6 flex flex-col justify-start items-start">
             <h1 className="text-3xl text-left font-bold mb-4 text-primary">Export</h1>
             <div className="w-full">
-                <p className="ml-1 mb-1 text-xl text-muted-foreground">Selected Profile</p>
+                <p className="ml-1 mb-1 text-lg text-muted-foreground">Selected Profile</p>
                 <Select onValueChange={e => newSelected(e)}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Profile to export..."/>
@@ -75,7 +75,7 @@ export default function Exporter() {
                 </Select>
             </div>
             <div className="flex flex-col mt-4 w-full">
-                <Label htmlFor="path" className="ml-1 mb-1 text-xl text-muted-foreground">Exportation Path</Label>
+                <Label htmlFor="path" className="ml-1 mb-1 text-lg text-muted-foreground">Exportation Path</Label>
                 <div className="flex gap-2">
                     <Input id="path" placeholder="Please enter your game path..."
                            value={exportPath} onChange={x => setExportPath(x.target.value)}/>

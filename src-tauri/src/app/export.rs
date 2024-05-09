@@ -73,6 +73,8 @@ fn export_one(handle: tauri::AppHandle, name: &str, path: &str) {
         let mut mod_path = paths::mod_path();
         mod_path.push(format!("{}.zip", mod_info.name));
         let mut export_mod_path = export_dir.clone();
+        export_mod_path.push("mods");
+        fs::create_dir_all(&export_mod_path).unwrap();
         export_mod_path.push(format!("{}.zip", mod_info.name));
         fs::copy(&mod_path, &export_mod_path).unwrap();
     }
@@ -85,6 +87,7 @@ fn export_one(handle: tauri::AppHandle, name: &str, path: &str) {
     fs::write(profile_json_path.join("profile.json"), profile_json).unwrap();
 
     zips::zip_directory(&export_dir, &export_zip_path).unwrap();
+    fs::remove_dir_all(&export_dir).unwrap();
     console::add_line(&handle, "<span class=\"console-green\">[Junimo] Exported profile</span>".to_string());
 }
 
@@ -97,6 +100,8 @@ fn export_all(handle: tauri::AppHandle, path: &str) {
         let mut mod_path = paths::mod_path();
         mod_path.push(format!("{}.zip", mod_info.name));
         let mut export_mod_path = export_dir.clone();
+        export_mod_path.push("mods");
+        fs::create_dir_all(&export_mod_path).unwrap();
         export_mod_path.push(format!("{}.zip", mod_info.name));
         fs::copy(&mod_path, &export_mod_path).unwrap();
     }
@@ -109,5 +114,6 @@ fn export_all(handle: tauri::AppHandle, path: &str) {
     fs::copy(&mods_file, export_dir.join("mods.json")).unwrap();
 
     zips::zip_directory(&export_dir, &export_zip_path).unwrap();
+    fs::remove_dir_all(&export_dir).unwrap();
     console::add_line(&handle, "<span class=\"console-green\">[Junimo] Exported all profiles and mods</span>".to_string());
 }
