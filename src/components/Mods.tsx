@@ -13,8 +13,8 @@ export default function Mods({setKey, profile, setProfile, selected, setSelected
     {setKey: Dispatch<SetStateAction<number>>, profile: Profile | undefined, setProfile: Dispatch<SetStateAction<Profile | undefined>>, selected: number[], setSelected: Dispatch<SetStateAction<number[]>>, className: string | undefined}) {
 
     async function loadProfile() {
-        const profile = await invoke<Profile>('get_current_profile');
-        setProfile(profile);
+        const newProfile = await invoke<Profile>('get_current_profile');
+        setProfile(newProfile);
     }
 
     function setIndex(index: number) {
@@ -42,6 +42,7 @@ export default function Mods({setKey, profile, setProfile, selected, setSelected
 
     useEffect(() => {
         loadProfile();
+        setSelected([]);
     }, []);
 
     return (
@@ -75,18 +76,20 @@ export default function Mods({setKey, profile, setProfile, selected, setSelected
                     </DropdownMenu>
                 </div>
                 {profile?.mods.map((mod, index) => (
-                    <ContextMenu>
-                        <ContextMenuTrigger>
-                            <div key={mod.name} onClick={i => setIndex(index)}>
-                                <Wrapper mod={mod} selected={selected.includes(index)}/>
-                            </div>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                            <ContextMenuItem onClick={unselectAll}>Unselect all</ContextMenuItem>
-                            <UninstallMod name={mod.name} setKey={setKey}/>
-                            <UninstallAll mods={profile?.mods} numbers={selected} setKey={setKey}/>
-                        </ContextMenuContent>
-                    </ContextMenu>
+                    <div key={index}>
+                        <ContextMenu>
+                            <ContextMenuTrigger>
+                                <div onClick={i => setIndex(index)}>
+                                    <Wrapper mod={mod} selected={selected.includes(index)}/>
+                                </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                                <ContextMenuItem onClick={unselectAll}>Unselect all</ContextMenuItem>
+                                <UninstallMod name={mod.name} setKey={setKey}/>
+                                <UninstallAll mods={profile?.mods} numbers={selected} setKey={setKey}/>
+                            </ContextMenuContent>
+                        </ContextMenu>
+                    </div>
                 ))}
             </div>
         </div>
