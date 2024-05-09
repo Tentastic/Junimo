@@ -34,7 +34,8 @@
         "visible": false,
         "transparent": true,
         "minWidth": 1000,
-        "minHeight": 650
+        "minHeight": 650,
+        "decorations": false
       },
       {
         "width": 420,

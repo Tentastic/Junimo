@@ -22,6 +22,7 @@ import Tools from "@components/menubar/Tools.tsx";
 import UtilityBar from "@components/UtilityBar.tsx";
 import Help from "@components/menubar/Help.tsx";
 import File from "@components/menubar/File.tsx";
+import WindowActions from "@components/menubar/WindowActions.tsx";
 
 function Home() {
     const [key, setKey] = useState(0);
@@ -111,50 +112,60 @@ async function add() {
 
   return (
     <div className="w-full h-[100vh] flex flex-col transition-all duration-300 overflow-y-hidden">
-        <Menubar>
-            <File />
-            <Tools />
-            <Profiles setKey={setKey} />
-            <Theme />
-            <Help />
+        <Menubar className="flex justify-between mx-[2px] mt-[2px]" data-tauri-drag-region>
+            <div className="flex">
+                <File />
+                <Tools />
+                <Profiles setKey={setKey} />
+                <Theme />
+                <Help />
+            </div>
+            <div className="w-32 h-full">
+                <WindowActions />
+            </div>
         </Menubar>
-        <main className="flex-grow flex-1 p-6 pt-2 grid gap-4 grid-rows-[auto_1fr_auto] grid-cols-[1fr_1fr_auto_1fr]">
+        <main className="p-6 pt-2 flex flex-col h-screen">
             <UtilityBar playing={playing} setPlaying={setPlaying} />
-            <Tabs defaultValue="mods" className="row-span-2 flex flex-col mt-2">
-                <TabsList>
-                <TabsTrigger value="mods">Mods</TabsTrigger>
-                    <TabsTrigger value="download">Downloads</TabsTrigger>
-                </TabsList>
-                <ModsInstalled setKey={setKey} modList={modList} setModList={setModList} selected={selectedInstalled} setSelected={setSelectedInstalled}
-                               key={key} className={playing || bigConsole ? "max-h-[30vh]" : "max-h-[50vh]"} />
-                <Downloader downloadList={downloadList} className={playing || bigConsole ? "max-h-[30vh]" : ""} />
-            </Tabs>
-            <Mods setKey={setKey} profile={profile} setProfile={setProfile} selected={selectedMods} setSelected={setSelectedMods} key={key}
-                  className={playing || bigConsole ? "max-h-[30vh]" : "max-h-[67vh]"} />
-            <div className="flex flex-col gap-2 h-full relative">
-                <div className="flex flex-col gap-2 h-full items-center justify-center">
-                    <button onClick={add} className={clsx(
-                        "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
-                        selectedInstalled.length === 0 && "opacity-50 pointer-events-none"
-                    )}>
-                        <ArrowLeft/>
-                    </button>
-                    <button onClick={remove} className={clsx(
-                        "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
-                        selectedMods.length === 0 && "opacity-50 pointer-events-none"
-                    )}>
-                        <ArrowRight/>
-                    </button>
-                </div>
-                {playing && (
-                    <div className="h-12 w-full absolute -bottom-4">
-                        <img src={DancingJunimo} alt="Dancing Junimo"/>
+
+            <div className="flex flex-1 py-4 overflow-hidden">
+                <Mods setKey={setKey} profile={profile} setProfile={setProfile} selected={selectedMods}
+                      setSelected={setSelectedMods} key={key}
+                      className={playing || bigConsole ? "" : ""}/>
+                <div className="flex flex-col gap-2 h-full relative">
+                    <div className="flex flex-col gap-2 h-full items-center justify-center">
+                        <button onClick={add} className={clsx(
+                            "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
+                            selectedInstalled.length === 0 && "opacity-50 pointer-events-none"
+                        )}>
+                            <ArrowLeft/>
+                        </button>
+                        <button onClick={remove} className={clsx(
+                            "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
+                            selectedMods.length === 0 && "opacity-50 pointer-events-none"
+                        )}>
+                            <ArrowRight/>
+                        </button>
                     </div>
-                )}
+                    {playing && (
+                        <div className="h-12 w-full absolute -bottom-4">
+                            <img src={DancingJunimo} alt="Dancing Junimo"/>
+                        </div>
+                    )}
+                </div>
+                <Tabs defaultValue="mods" className="relative w-[25vw] flex flex-col">
+                    <TabsList>
+                        <TabsTrigger value="mods">Mods</TabsTrigger>
+                        <TabsTrigger value="download">Downloads</TabsTrigger>
+                    </TabsList>
+                    <ModsInstalled setKey={setKey} modList={modList} setModList={setModList}
+                                   selected={selectedInstalled} setSelected={setSelectedInstalled}
+                                   key={key} className={playing || bigConsole ? "" : ""}/>
+                    <Downloader downloadList={downloadList} className={playing || bigConsole ? "max-h-[30vh]" : ""}/>
+                </Tabs>
             </div>
 
             <div onClick={toggleConsole} className={clsx(
-                "h-32 border-border transition duration-150 cursor-pointer hover:bg-muted pl-2 col-span-4 border rounded-lg",
+                "h-32 border-border bg-muted hover:bg-muted transition duration-150 cursor-pointer pl-2 col-span-4 border rounded-lg",
                 playing || bigConsole ? "h-[50vh]" : "h-32"
             )}>
                 <Console playing={playing} bigConsole={bigConsole}/>
