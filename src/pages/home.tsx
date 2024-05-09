@@ -100,7 +100,7 @@ async function add() {
 
         setTimeout(() => {
             invoke("close_splashscreen");
-        }, 2000);
+        }, 1600);
 
         return () => {
             unsubscribeEvent.then((unsub) => unsub());
