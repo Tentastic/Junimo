@@ -5,7 +5,7 @@ use std::{fs};
 use std::fs::File;
 
 mod app;
-use crate::app::{mods, config, user, profiles};
+use crate::app::{mods, config, user, profiles, import};
 
 use tauri::{command, Manager};
 use zip::ZipArchive;
@@ -57,9 +57,12 @@ async fn show_window(window: tauri::Window, label: String) -> String {
 }
 
 #[command]
-async fn close_splashscreen(window: tauri::Window) {
-    window.get_webview_window("splashscreen").expect("no window labeled 'splashscreen' found").close().unwrap();
-    window.get_webview_window("main").expect("no window labeled 'main' found").show().unwrap();
+async fn close_splashscreen(window: tauri::Window, handle: tauri::AppHandle) {
+    if handle.get_webview_window("splashscreen").is_some() {
+        handle.get_webview_window("splashscreen").expect("no window labeled 'splashscreen' found").close().unwrap();
+    }
+
+    handle.get_webview_window("main").expect("no window labeled 'main' found").show().unwrap();
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -120,6 +123,10 @@ pub fn main() {
             export::close_export,
             export::select_export_dir,
             export::export_profile,
+            import::open_import,
+            import::close_import,
+            import::select_import_dir,
+            import::import_profile,
             downloader::stop_download,
         ])
         .run(tauri::generate_context!())
