@@ -8,6 +8,7 @@ import Config from "./pages/config.tsx";
 import Profiles from "./pages/profiles.tsx";
 import Exporter from "./pages/exporter.tsx";
 import Splashscreen from "./pages/splashscreen.tsx";
+import Importer from "./pages/importer.tsx";
 
 document.addEventListener('DOMContentLoaded', function () {
     const currentTheme = localStorage.getItem('theme');
@@ -38,6 +39,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
               <Route path="config" element={<Config />} />
               <Route path="profiles" element={<Profiles />} />
               <Route path="exporter" element={<Exporter />} />
+              <Route path="importer" element={<Importer />} />
           </Routes>
       </BrowserRouter>
   </React.StrictMode>,
