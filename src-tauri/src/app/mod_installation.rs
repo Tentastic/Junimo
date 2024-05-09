@@ -1,12 +1,13 @@
 use std::{fs, io, thread};
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use futures_util::future::err;
 use tauri::{AppHandle, Manager};
 use zip::ZipArchive;
 use crate::app::{console, mods};
 use crate::app::utility::{paths, zips};
 
-pub fn start_installation(app_handle: AppHandle, path: &PathBuf) {
+pub fn start_installation(app_handle: AppHandle, path: &PathBuf) -> Result<(), String> {
     let cloned_handle = app_handle.clone();
     let path_clone = path.clone();
     thread::spawn(move || {
@@ -21,6 +22,8 @@ pub fn start_installation(app_handle: AppHandle, path: &PathBuf) {
 
         extract_mods(&cloned_handle, zip_archive, &output_folder_path);
     });
+
+    Ok(())
 }
 
 fn calculate_percentage(value: &usize, max_value: &usize) -> usize {
@@ -40,8 +43,11 @@ fn list_dirs_in_directory(path: &Path) -> Vec<PathBuf> {
     let mut paths: Vec<PathBuf> = Vec::new();
     if path.is_dir() {
         for entry in fs::read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
+            let entry = entry;
+            if (entry.is_err()) {
+                continue;
+            }
+            let path = entry.unwrap().path();
             if path.is_dir() {
                 paths.push(path);
             }
@@ -69,10 +75,16 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
     let mut depth = 0;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
-        let split = file.name().split('/').collect::<Vec<&str>>();
+        let mut file = archive.by_index(i);
 
-        if !file.name().contains("manifest.json") {
+        if file.is_err() {
+            console::modify_line(&app_handle, format!("<span class=\"console-red\">[Junimo] Mod couldn't be installed</span>"));
+            return;
+        }
+        let file = file.unwrap();
+
+        let split = file.name().split('/').collect::<Vec<&str>>();
+        if file.name().contains("manifest.json") {
             depth = split.len();
             break;
         }
@@ -128,23 +140,31 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
         return;
     }
 
-    if depth > 3 {
-        let outpath = destination.join(main_dir);
-        let directories = list_dirs_in_directory(&outpath);
-        copy_into_mod(directories, &outpath);
+    let outpath = destination.join(main_dir);
+    let mut directories: Vec<PathBuf> = Vec::new();
+
+    if depth < 3 {
+        let dir = outpath.clone();
+        directories = vec![dir];
     }
     else {
-        let outpath = destination.join(main_dir);
-        let dir = outpath.clone();
-        let directories: Vec<PathBuf> = vec![dir];
-        copy_into_mod(directories, &outpath);
+        directories = list_dirs_in_directory(&outpath);
+    }
+
+    match copy_into_mod(&directories, &outpath, &depth) {
+        Ok(_) => {},
+        Err(_) => {
+            console::add_line(&app_handle, "<span class=\"console-red\">[Junimo] Failed to install mod</span>".to_string());
+            &app_handle.emit("reload", false).unwrap();
+            return;
+        }
     }
 
     console::modify_line(&app_handle, format!("<span class=\"console-green\">[Junimo] Mod installed</span>"));
-    &app_handle.emit("reload", false).unwrap();
+    &app_handle.emit("reload", true).unwrap();
 }
 
-fn copy_into_mod(directories: Vec<PathBuf>, outpath: &PathBuf) {
+fn copy_into_mod(directories: &Vec<PathBuf>, outpath: &PathBuf, depth: &usize) -> Result<(), String> {
     for dir in directories {
         let mut new_dir_name = "".to_string();
         for entry in fs::read_dir(&dir).unwrap() {
@@ -161,13 +181,27 @@ fn copy_into_mod(directories: Vec<PathBuf>, outpath: &PathBuf) {
         }
 
         let mut renamed_dir = outpath.clone();
+        if depth < &3 {
+            renamed_dir.pop();
+        }
         renamed_dir.push(&new_dir_name);
-        fs::rename(&dir, &renamed_dir).unwrap();
+        let rename_result = fs::rename(&dir, &renamed_dir).ok();
 
-        let mut new_zip_path = paths::mod_path();
-        new_zip_path.push(&renamed_dir);
+        if rename_result.is_none() {
+            return Err("Failed to rename directory".to_string());
+        }
 
         let new_path = format!("{}/{}.zip", paths::mod_path().to_string_lossy(), &new_dir_name);
-        zips::zip_directory(&renamed_dir, Path::new(&new_path)).unwrap();
+        let zip_result = zips::zip_directory(&renamed_dir, Path::new(&new_path));
+        match zip_result {
+            Ok(_) => {
+                fs::remove_dir_all(&renamed_dir).unwrap();
+            },
+            Err(_) => {
+                return Err("Failed to zip directory".to_string());
+            }
+        }
     }
+
+    Ok(())
 }
