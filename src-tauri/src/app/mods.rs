@@ -15,7 +15,7 @@ use crate::app::utility::{browser, paths, zips};
 pub struct ModInfo {
     pub name: String,
     summary: String,
-    description: String,
+    description: Option<String>,
     picture_url: Option<String>,
     mod_downloads: u64,
     mod_unique_downloads: u64,
@@ -267,7 +267,7 @@ pub fn add_mod_through_manifest(path: &PathBuf) -> String {
     let new_mod = ModInfo {
         name: manifest.name,
         summary: manifest.description.clone(),
-        description: manifest.description,
+        description: Some(manifest.description),
         picture_url: None,
         mod_downloads: 0,
         mod_unique_downloads: 0,
