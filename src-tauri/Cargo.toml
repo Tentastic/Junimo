@@ -15,6 +15,7 @@ tauri = { version = "2.0.0-beta", features = [] }
 tauri-plugin-shell = "2.0.0-beta"
 tauri-plugin-single-instance = "2.0.0-beta"
 
+cargo-tarpaulin = "0.29.2"
 dirs = "5.0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
