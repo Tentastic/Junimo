@@ -25,7 +25,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
     }
 
     return (
-        <div className="flex col-span-3 min-h-12 items-center justify-between">
+        <div className="flex col-span-3 min-h-12 items-center flex-1 mr-5 justify-between">
             <div className="flex items-center gap-2 mb-2">
                 <img src={Logo} alt="React Logo" className="w-10 h-10 select-none"/>
                 <h1 className="text-4xl mt-2 text-[#8bc24a] font-bold select-none">Junimo</h1>

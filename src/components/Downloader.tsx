@@ -14,7 +14,7 @@ import {
 } from "@components/ui/context-menu"
 import {TabsContent} from "@components/ui/tabs.tsx";
 
-export default function Downloader({downloadList, className}: {downloadList: Download[], className: string}) {
+export default function Downloader({downloadList}: {downloadList: Download[]}) {
     async function stopDownload() {
         await invoke('stop_download');
     }
@@ -31,37 +31,32 @@ export default function Downloader({downloadList, className}: {downloadList: Dow
     }
 
     return (
-        <TabsContent value="download" className="flex-1 mt-7">
-            <div className="relative flex-grow h-full p-4 pr-0 pt-0 border-border border rounded-lg">
-                <div className="absolute -top-5 left-2 bg-background p-2 px-4">
-                    <h2 className="text-lg">Downloads</h2>
-                </div>
-                <div className={clsx(
-                    "flex flex-col gap-2 w-full h-full mt-6 overflow-y-auto pr-4",
-                    className
-                )}>
-                    {downloadList.map((mod, index) => (
-                            <ContextMenu>
-                                <ContextMenuTrigger>
-                                    <div key={index}
-                                         className="w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg pb-0 overflow-hidden">
-                                        <div className="w-full flex justify-between p-2 pb-1">
-                                            <p>{mod.name}</p>
-                                            <p className="text-zinc-500 h-2">{bytesToString(mod.current)} / {bytesToString(mod.size)}</p>
-                                        </div>
-                                        <Progress value={mod.current / mod.size * 100}/>
-                                    </div>
-                                </ContextMenuTrigger>
-                                <ContextMenuContent>
-                                    {!mod.aborted && (
-                                        <ContextMenuItem onClick={stopDownload}>Cancel</ContextMenuItem>
-                                    )}
-                                </ContextMenuContent>
-                            </ContextMenu>
-                        )
-                    )}
-                </div>
+        <div className="relative h-full flex flex-col w-[30vw] border-border pl-3 border rounded-lg">
+            <div className="absolute -top-5 bg-background left-2 p-2 px-4">
+                <h2 className="text-lg">Downloads</h2>
             </div>
-        </TabsContent>
+            <div className="flex flex-col gap-2 w-full aboslute mt-2 overflow-auto relative p-1 pb-4 pr-4">
+                {downloadList.map((mod, index) => (
+                        <ContextMenu>
+                            <ContextMenuTrigger>
+                                <div key={index}
+                                     className="w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg pb-0 overflow-hidden">
+                                    <div className="w-full flex justify-between p-2 pb-1">
+                                        <p>{mod.name}</p>
+                                        <p className="text-zinc-500 h-2">{bytesToString(mod.current)} / {bytesToString(mod.size)}</p>
+                                    </div>
+                                    <Progress value={mod.current / mod.size * 100}/>
+                                </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                                {!mod.aborted && (
+                                    <ContextMenuItem onClick={stopDownload}>Cancel</ContextMenuItem>
+                                )}
+                            </ContextMenuContent>
+                        </ContextMenu>
+                    )
+                )}
+            </div>
+        </div>
     )
 }

@@ -3,7 +3,6 @@ import DancingJunimo from "../assets/JunimoDance.gif";
 import { invoke } from "@tauri-apps/api/core";
 import "../App.css";
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs"
 import {
     Menubar,
 } from "@components/ui/menubar"
@@ -34,6 +33,8 @@ function Home() {
     const [playing, setPlaying] = useState(false);
     const [bigConsole, setBigConsole] = useState(false);
 
+    const [submenu, setSubmenu] = useState(false);
+
     window.addEventListener('contextmenu', function (e) {
         e.preventDefault();  // This will prevent the default context menu
     }, false);
@@ -50,7 +51,6 @@ function Home() {
 async function add() {
     if (profile !== undefined) {
         const mods = profile.mods.concat(modList.filter((x, i) => selectedInstalled.includes(i)));
-        console.log(mods);
         await invoke('change_profile_mods', {name: profile.name, mods: mods});
         setSelectedInstalled([]);
         setKey(prevKey => prevKey + 1);
@@ -112,27 +112,44 @@ async function add() {
 
   return (
     <div className="w-full h-[100vh] flex flex-col transition-all duration-300 overflow-y-hidden">
-        <Menubar className="flex justify-between mx-[2px] mt-[2px]" data-tauri-drag-region>
-            <div className="flex">
-                <File />
-                <Tools />
-                <Profiles setKey={setKey} />
-                <Theme />
-                <Help />
+        <div className="pt-0 p-6 flex flex-col h-screen">
+            <div>
+                <Menubar className="flex justify-between mx-[-18px] mt-[4px]" data-tauri-drag-region>
+                    <div className="flex">
+                        <File />
+                        <Tools />
+                        <Profiles setKey={setKey} />
+                        <Theme />
+                        <Help />
+                    </div>
+                    <div className="w-32 h-full">
+                        <WindowActions />
+                    </div>
+                </Menubar>
+                <div className="flex items-center justify-between">
+                    <UtilityBar playing={playing} setPlaying={setPlaying} />
+                    <div className="w-[30vw] h-10 bg-card rounded-lg border-border border flex justify-around p-1">
+                        <button onClick={() => setSubmenu(false)} className={clsx(
+                            "flex-grow flex items-center justify-center w-[50%] rounded transition duration-150 cursor-pointer",
+                            !submenu ? "bg-background" : "hover:bg-muted"
+                        )}>
+                            Installs
+                        </button>
+                        <button onClick={() => setSubmenu(true)} className={clsx(
+                            "flex-grow flex items-center justify-center w-[50%] rounded transition duration-150 cursor-pointer",
+                            submenu ? "bg-background" : "hover:bg-muted"
+                        )}>
+                            Downloads
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div className="w-32 h-full">
-                <WindowActions />
-            </div>
-        </Menubar>
-        <main className="p-6 pt-2 flex flex-col h-screen">
-            <UtilityBar playing={playing} setPlaying={setPlaying} />
 
-            <div className="flex flex-1 py-4 overflow-hidden">
+            <div className="flex flex-1 py-4 overflow-hidden" key={key}>
                 <Mods setKey={setKey} profile={profile} setProfile={setProfile} selected={selectedMods}
-                      setSelected={setSelectedMods} key={key}
-                      className={playing || bigConsole ? "" : ""}/>
-                <div className="flex flex-col gap-2 h-full relative">
-                    <div className="flex flex-col gap-2 h-full items-center justify-center">
+                      setSelected={setSelectedMods} />
+                <div className="flex flex-col gap-2 h-full px-4 relative">
+                    <div className="flex flex-col gap-4 h-full items-center justify-center">
                         <button onClick={add} className={clsx(
                             "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
                             selectedInstalled.length === 0 && "opacity-50 pointer-events-none"
@@ -152,25 +169,26 @@ async function add() {
                         </div>
                     )}
                 </div>
-                <Tabs defaultValue="mods" className="relative w-[25vw] flex flex-col">
-                    <TabsList>
-                        <TabsTrigger value="mods">Mods</TabsTrigger>
-                        <TabsTrigger value="download">Downloads</TabsTrigger>
-                    </TabsList>
-                    <ModsInstalled setKey={setKey} modList={modList} setModList={setModList}
-                                   selected={selectedInstalled} setSelected={setSelectedInstalled}
-                                   key={key} className={playing || bigConsole ? "" : ""}/>
-                    <Downloader downloadList={downloadList} className={playing || bigConsole ? "max-h-[30vh]" : ""}/>
-                </Tabs>
+                {
+                    !submenu ?
+                        (
+                            <ModsInstalled setKey={setKey} modList={modList} setModList={setModList}
+                                           selected={selectedInstalled} setSelected={setSelectedInstalled}  />
+                        )
+                            :
+                        (
+                            <Downloader downloadList={downloadList} />
+                        )
+                }
             </div>
 
             <div onClick={toggleConsole} className={clsx(
-                "h-32 border-border bg-muted hover:bg-muted transition duration-150 cursor-pointer pl-2 col-span-4 border rounded-lg",
+                "h-32 border-border bg-card hover:bg-muted transition duration-150 cursor-pointer pl-2 col-span-4 border rounded-lg",
                 playing || bigConsole ? "h-[50vh]" : "h-32"
             )}>
                 <Console playing={playing} bigConsole={bigConsole}/>
             </div>
-        </main>
+        </div>
     </div>
   );
 }

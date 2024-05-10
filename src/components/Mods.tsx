@@ -9,8 +9,8 @@ import UninstallMod from "@components/UninstallMod.tsx";
 import UninstallAll from "@components/UninstallAll.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@components/ui/dropdown-menu"
 
-export default function Mods({setKey, profile, setProfile, selected, setSelected, className}:
-    {setKey: Dispatch<SetStateAction<number>>, profile: Profile | undefined, setProfile: Dispatch<SetStateAction<Profile | undefined>>, selected: number[], setSelected: Dispatch<SetStateAction<number[]>>, className: string | undefined}) {
+export default function Mods({setKey, profile, setProfile, selected, setSelected}:
+    {setKey: Dispatch<SetStateAction<number>>, profile: Profile | undefined, setProfile: Dispatch<SetStateAction<Profile | undefined>>, selected: number[], setSelected: Dispatch<SetStateAction<number[]>>}) {
 
     async function loadProfile() {
         const newProfile = await invoke<Profile>('get_current_profile');
@@ -46,10 +46,7 @@ export default function Mods({setKey, profile, setProfile, selected, setSelected
     }, []);
 
     return (
-        <div className={clsx(
-            "relative w-full flex flex-col border-border pl-3 border rounded-lg flex-1",
-            className
-        )}>
+        <div className="relative w-full flex flex-col border-border pl-3 border rounded-lg flex-1">
             <div className="absolute -top-5 bg-background left-2 p-2 px-4">
                 <h2 className="text-lg">Current Mods</h2>
             </div>
@@ -75,9 +72,7 @@ export default function Mods({setKey, profile, setProfile, selected, setSelected
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className={clsx(
-                "flex flex-col gap-2 w-full mt-2 overflow-auto p-1 pr-4"
-            )}>
+            <div className="flex flex-col gap-2 w-full mt-2 overflow-auto p-1 pb-4 pr-4">
                 {profile?.mods.map((mod, index) => (
                     <div key={index} className={clsx(
                         mod.invisible && "hidden"

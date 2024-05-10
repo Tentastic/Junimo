@@ -16,8 +16,8 @@ import {
 } from "@components/ui/dropdown-menu.tsx";
 
 
-export default function ModsInstalled({setKey, modList, setModList, selected, setSelected, className}:
-    {setKey: Dispatch<SetStateAction<number>>, modList: ModInfos[], setModList: Dispatch<SetStateAction<ModInfos[]>>, selected: number[], setSelected: Dispatch<SetStateAction<number[]>>, className: string}) {
+export default function ModsInstalled({setKey, modList, setModList, selected, setSelected}:
+    {setKey: Dispatch<SetStateAction<number>>, modList: ModInfos[], setModList: Dispatch<SetStateAction<ModInfos[]>>, selected: number[], setSelected: Dispatch<SetStateAction<number[]>>}) {
 
     async function getMods() {
         const mods = await invoke<ModInfos[]>('get_installed_mods');
@@ -55,38 +55,17 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
     }, []);
 
     return (
-        <TabsContent value="mods" className={clsx(
-            "relative w-full flex flex-col border-border pl-3 border rounded-lg overflow-auto",
-            className
-        )}>
+        <div className="relative h-full flex flex-col w-[30vw] border-border pl-3 border rounded-lg">
             <div className="absolute -top-5 bg-background left-2 p-2 px-4">
-                <h2 className="text-lg">Current Mods</h2>
+                <h2 className="text-lg">Installed Mods</h2>
             </div>
             <div className="flex gap-2 mt-6 mx-2 mr-6">
                 <div
                     className="w-full transform duration-150 cursor-pointer bg-muted hover:bg-muted-dark rounded-lg flex justify-between">
                     <Input placeholder="Search..." onChange={x => doSearch(x.target.value)}/>
                 </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger>
-                        <button
-                            className="w-12 h-full rounded transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center">
-                            Sort
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator/>
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Billing</DropdownMenuItem>
-                        <DropdownMenuItem>Team</DropdownMenuItem>
-                        <DropdownMenuItem>Subscription</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
             </div>
-            <div className={clsx(
-                "flex flex-col gap-2 w-full mt-2 overflow-auto p-1 pr-4"
-            )}>
+            <div className="flex flex-col gap-2 w-full aboslute mt-2 overflow-auto relative p-1 pb-4 pr-4">
                 {modList.map((mod, index) => (
                     <div key={index} className={clsx(
                         mod.invisible && "hidden"
@@ -106,6 +85,6 @@ export default function ModsInstalled({setKey, modList, setModList, selected, se
                     </div>
                 ))}
             </div>
-        </TabsContent>
+        </div>
     )
 }
