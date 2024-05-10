@@ -14,12 +14,17 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    "baseUrl": "src",
+    "paths": {
+      "@components/*": ["components/*"],
+      "@lib/*": ["lib/*"],
+      "@assets/*": ["assets/*"],
+      "@models/*": ["models/*"]
+    },
+
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

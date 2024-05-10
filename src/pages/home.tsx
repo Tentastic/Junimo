@@ -1,51 +1,189 @@
-import { useState } from "react";
-import reactLogo from "../assets/react.svg";
-import { invoke } from "@tauri-apps/api/tauri";
+import {useEffect, useRef, useState} from "react";
+import DancingJunimo from "../assets/JunimoDance.gif";
+import { invoke } from "@tauri-apps/api/core";
 import "../App.css";
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import {
+    Menubar,
+} from "@components/ui/menubar"
+import Downloader from "@components/Downloader.tsx";
+import ModsInstalled from "@components/ModsInstalled.tsx";
+import {clsx} from "clsx";
+import Mods from "@components/Mods.tsx";
+import {Profile} from "@models/profile.ts";
+import {ModInfos} from "@models/mods.ts";
+import Console from "@components/Console.tsx";
+import {Download} from "@models/download.ts";
+import Theme from "@components/menubar/Theme.tsx";
+import {listen} from "@tauri-apps/api/event";
+import Profiles from "@components/menubar/Profiles.tsx";
+import Tools from "@components/menubar/Tools.tsx";
+import UtilityBar from "@components/UtilityBar.tsx";
+import Help from "@components/menubar/Help.tsx";
+import File from "@components/menubar/File.tsx";
+import WindowActions from "@components/menubar/WindowActions.tsx";
 
 function Home() {
-  const [greetMsg] = useState("");
-  const [name, setName] = useState("");
+    const [key, setKey] = useState(0);
+    const [selectedInstalled, setSelectedInstalled] = useState<number[]>([]);
+    const [selectedMods, setSelectedMods] = useState<number[]>([]);
+    const [profile, setProfile] = useState<Profile>();
+    const [modList, setModList] = useState<ModInfos[]>([]);
+    const [downloadList, setDownloadList] = useState<Download[]>([]);
+    const [playing, setPlaying] = useState(false);
+    const [bigConsole, setBigConsole] = useState(false);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-      await invoke("greet", { name })
+    const [submenu, setSubmenu] = useState(false);
+
+    window.addEventListener('contextmenu', function (e) {
+        e.preventDefault();  // This will prevent the default context menu
+    }, false);
+
+  async function remove() {
+    if (profile !== undefined) {
+        const mods = profile.mods.filter((x, i) => !selectedMods.includes(i));
+        await invoke('change_profile_mods', {name: profile.name, mods: mods});
+        setSelectedMods([]);
+        setKey(prevKey => prevKey + 1);
+    }
   }
 
+async function add() {
+    if (profile !== undefined) {
+        const mods = profile.mods.concat(modList.filter((x, i) => selectedInstalled.includes(i)));
+        await invoke('change_profile_mods', {name: profile.name, mods: mods});
+        setSelectedInstalled([]);
+        setKey(prevKey => prevKey + 1);
+    }
+  }
+
+  function toggleConsole() {
+        if (!playing) {
+            setBigConsole(!bigConsole);
+        }
+  }
+
+    useEffect(() => {
+        const handleNewData = (event: any) => {
+            setPlaying(false);
+        };
+
+        const handleDownload = (event: any) => {
+            const data = event.payload as Download;
+            setDownloadList(prevLines => {
+                const newDownloads = [...prevLines];
+
+                if (prevLines.find(x => x.name === data.name) === undefined) {
+                    newDownloads.push(data);
+                    return newDownloads;
+                }
+
+                if (data.aborted) {
+                    return prevLines.filter(x => x.name !== data.name);
+                }
+
+                if (data.finished) {
+                    setKey(prevKey => prevKey + 1);
+                    return prevLines.map(x => x.name === data.name ? data : x);
+                }
+
+                return prevLines.map(x => x.name === data.name ? data : x);
+            });
+        };
+
+        const handleReload = (event: any) => {
+            setKey(prevKey => prevKey + 1);
+        };
+
+        let unsubscribeEvent = listen('close', handleNewData);
+        let unsubscribeDownloadEvent = listen('download', handleDownload);
+        let unsubscribeReloadEvent = listen('reload', handleReload);
+
+        setTimeout(() => {
+            invoke("close_splashscreen");
+        }, 1600);
+
+        return () => {
+            unsubscribeEvent.then((unsub) => unsub());
+            unsubscribeDownloadEvent.then((unsub) => unsub());
+            unsubscribeReloadEvent.then((unsub) => unsub());
+        };
+    }, []);
+
   return (
-    <div className="container bg-amber-50">
-      <h1>Welcome to Tauri!</h1>
+    <div className="w-full h-[100vh] flex flex-col transition-all duration-300 overflow-y-hidden">
+        <div className="pt-0 p-6 flex flex-col h-screen">
+            <div>
+                <Menubar className="flex justify-between mx-[-18px] mt-[4px]" data-tauri-drag-region>
+                    <div className="flex">
+                        <File />
+                        <Tools />
+                        <Profiles setKey={setKey} />
+                        <Theme />
+                        <Help />
+                    </div>
+                    <div className="w-32 h-full">
+                        <WindowActions />
+                    </div>
+                </Menubar>
+                <div className="flex items-center justify-between">
+                    <UtilityBar playing={playing} setPlaying={setPlaying} />
+                    <div className="w-[30vw] h-10 bg-card rounded-lg border-border border flex justify-around p-1">
+                        <button onClick={() => setSubmenu(false)} className={clsx(
+                            "flex-grow flex items-center justify-center w-[50%] rounded transition duration-150 cursor-pointer",
+                            !submenu ? "bg-background" : "hover:bg-muted"
+                        )}>
+                            Installs
+                        </button>
+                        <button onClick={() => setSubmenu(true)} className={clsx(
+                            "flex-grow flex items-center justify-center w-[50%] rounded transition duration-150 cursor-pointer",
+                            submenu ? "bg-background" : "hover:bg-muted"
+                        )}>
+                            Downloads
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
+            <div className="flex flex-1 py-4 overflow-hidden" key={key}>
+                <Mods setKey={setKey} profile={profile} setProfile={setProfile} selected={selectedMods}
+                      setSelected={setSelectedMods} />
+                <div className="flex flex-col gap-2 h-full px-4 relative">
+                    <div className="flex flex-col gap-4 h-full items-center justify-center">
+                        <button onClick={add} className={clsx(
+                            "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
+                            selectedInstalled.length === 0 && "opacity-50 pointer-events-none"
+                        )}>
+                            <ArrowLeft/>
+                        </button>
+                        <button onClick={remove} className={clsx(
+                            "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
+                            selectedMods.length === 0 && "opacity-50 pointer-events-none"
+                        )}>
+                            <ArrowRight/>
+                        </button>
+                    </div>
+                    {playing && (
+                        <div className="h-12 w-full absolute -bottom-4">
+                            <img src={DancingJunimo} alt="Dancing Junimo"/>
+                        </div>
+                    )}
+                </div>
+                {
+                    !submenu ?
+                        (
+                            <ModsInstalled setKey={setKey} modList={modList} setModList={setModList}
+                                           selected={selectedInstalled} setSelected={setSelectedInstalled}  />
+                        )
+                            :
+                        (
+                            <Downloader downloadList={downloadList} />
+                        )
+                }
+            </div>
 
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-
-      <p>{greetMsg}</p>
+            <Console playing={playing} bigConsole={bigConsole}/>
+        </div>
     </div>
   );
 }
