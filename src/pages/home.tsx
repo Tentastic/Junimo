@@ -182,12 +182,7 @@ async function add() {
                 }
             </div>
 
-            <div onClick={toggleConsole} className={clsx(
-                "h-32 border-border bg-card hover:bg-muted transition duration-150 cursor-pointer pl-2 col-span-4 border rounded-lg",
-                playing || bigConsole ? "h-[50vh]" : "h-32"
-            )}>
-                <Console playing={playing} bigConsole={bigConsole}/>
-            </div>
+            <Console playing={playing} bigConsole={bigConsole}/>
         </div>
     </div>
   );
