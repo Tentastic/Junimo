@@ -15,8 +15,11 @@ export default function Config() {
     const [nmxSwitch, setNmxSwitch] = useState(false);
 
     async function loadConfig() {
+
+
         try {
-            const config = await invoke<ConfigModel>('load_config');
+            const configPath = await invoke<string>('config_path');
+            const config = await invoke<ConfigModel>('get_config', {path: configPath});
             setGamePath(config.game_path);
             setNmxSwitch(config.handle_nxm);
         } catch (error) {
@@ -31,18 +34,20 @@ export default function Config() {
     }
 
     async function fetchConfigPath() {
-        const path = await invoke<string>('select_game_dir');
+        const configPath = await invoke<string>('config_path');
+        const path = await invoke<string>('select_game_dir', {path: configPath});
         setGamePath(path);
     }
 
     async function save() {
+        const configPath = await invoke<string>('config_path');
         const config : ConfigModel = {
             init_app: true,
             game_path: gamePath,
             handle_nxm: nmxSwitch
         }
 
-        const path = await invoke<ConfigModel>('save_config_button', {config: config });
+        const path = await invoke<ConfigModel>('save_config_button', {config: config, path: configPath});
         setGamePath(path.game_path);
     }
 
