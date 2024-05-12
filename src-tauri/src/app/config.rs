@@ -1,16 +1,12 @@
-use std::{env, fs};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 use serde::{Deserialize, Serialize};
 use tauri::{command, Manager, Runtime, WebviewUrl, WebviewWindow, Window};
-use winreg::enums::*;
-use winreg::RegKey;
 
 use crate::app::app_state::AppState;
-use crate::app::console;
-use crate::app::utility::paths;
 use crate::testing::register_manager::{RealRegistryManager, RegistryManager};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -62,22 +58,10 @@ pub fn save_config_button<R: Runtime>(window: Window<R>, config: Config, path: P
     window.close().expect("Couldn't close window!");
 }
 
-#[command]
-pub fn select_game_dir(state: tauri::State<AppState>, path: PathBuf) -> String {
-    let config = get_config(path);
-    let mut path = ".";
-    if config.game_path != "" {
-        path = &config.game_path;
-    }
-
-    let lock = state.directory_selector.lock().unwrap();
-    match lock.pick_directory(path) {
-        Some(dir) => dir.to_str().unwrap_or_default().to_string(),
-        None => "".to_string(),
-    }
-}
-
-pub fn init_config<R: Runtime>(handle: &tauri::AppHandle<R>, dir: &Path) -> Result<Option<WebviewWindow<R>>, String> {
+pub fn init_config<R: Runtime>(
+    handle: &tauri::AppHandle<R>,
+    dir: &Path,
+) -> Result<Option<WebviewWindow<R>>, String> {
     let mut path = dir.to_owned();
     path.push("Junimo");
     fs::create_dir_all(&path).unwrap();
@@ -113,22 +97,23 @@ fn register_nxm(registry: &dyn RegistryManager) -> Result<(), String> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use tauri::test::mock_builder;
     use tempfile::tempdir;
 
-    use crate::testing::directory_selector::MockDirectorySelector;
     use crate::testing::register_manager::MockRegistryManager;
 
     use super::*;
 
     fn create_app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::App<R> {
-        let (app_state, rx) = AppState::new(Box::new(MockDirectorySelector));
+        let (app_state, rx) = AppState::new();
 
         builder
-            .invoke_handler(tauri::generate_handler![open_config, save_config_button, select_game_dir])
+            .invoke_handler(tauri::generate_handler![
+                open_config,
+                save_config_button
+            ])
             .manage(app_state.clone())
             // remove the string argument to use your app's config file
             .build(tauri::generate_context!())
@@ -147,7 +132,7 @@ mod tests {
     }
 
     #[test]
-    fn test_new_config_0() {
+    fn test_new_config() {
         let expected_config = Config {
             init_app: false,
             game_path: "".to_string(),
@@ -158,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_config_1() {
+    fn test_get_config() {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
         let expected_config = Config {
@@ -175,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn test_save_config_2() {
+    fn test_save_config() {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
 
@@ -191,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn test_open_config_3() {
+    fn test_open_config() {
         let app = create_app(mock_builder());
         let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
             .build()
@@ -212,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn test_save_config_button_4() {
+    fn test_save_config_button() {
         let app = create_app(mock_builder());
         let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
             .build()
@@ -228,7 +213,7 @@ mod tests {
         };
         let config_wrap = ConfigWrap {
             config: expected_config,
-            path: config_path
+            path: config_path,
         };
         let serialized_payload = serde_json::to_string(&config_wrap).unwrap();
         let invoke_body = tauri::ipc::InvokeBody::Json(serialized_payload.parse().unwrap());
@@ -249,83 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_select_game_dir_5() {
-        let app = create_app(mock_builder());
-        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
-            .build()
-            .unwrap();
-
-        let tmp_dir = tempdir().unwrap();
-        let config_path = tmp_dir.path().join("config.json");
-
-        let config = Config {
-            init_app: false,
-            game_path: "/test".to_string(),
-            handle_nxm: false,
-        };
-        save_config(&config, &config_path);
-
-        let config_wrap = PathWrap {
-            path: config_path
-        };
-        let serialized_payload = serde_json::to_string(&config_wrap).unwrap();
-        let invoke_body = tauri::ipc::InvokeBody::Json(serialized_payload.parse().unwrap());
-
-        let res = tauri::test::get_ipc_response(
-            &webview,
-            tauri::webview::InvokeRequest {
-                cmd: "select_game_dir".into(),
-                callback: tauri::ipc::CallbackFn(0),
-                error: tauri::ipc::CallbackFn(1),
-                url: "http://tauri.localhost".parse().unwrap(),
-                body: invoke_body,
-                headers: Default::default(),
-            },
-        );
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap().deserialize::<String>().unwrap(), "/test")
-    }
-
-    #[test]
-    fn test_select_game_dir_none_5() {
-        let app = create_app(mock_builder());
-        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
-            .build()
-            .unwrap();
-
-        let tmp_dir = tempdir().unwrap();
-        let config_path = tmp_dir.path().join("config.json");
-
-        let config = Config {
-            init_app: false,
-            game_path: " ".to_string(),
-            handle_nxm: false,
-        };
-        save_config(&config, &config_path);
-
-        let config_wrap = PathWrap {
-            path: config_path
-        };
-        let serialized_payload = serde_json::to_string(&config_wrap).unwrap();
-        let invoke_body = tauri::ipc::InvokeBody::Json(serialized_payload.parse().unwrap());
-
-        let res = tauri::test::get_ipc_response(
-            &webview,
-            tauri::webview::InvokeRequest {
-                cmd: "select_game_dir".into(),
-                callback: tauri::ipc::CallbackFn(0),
-                error: tauri::ipc::CallbackFn(1),
-                url: "http://tauri.localhost".parse().unwrap(),
-                body: invoke_body,
-                headers: Default::default(),
-            },
-        );
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap().deserialize::<String>().unwrap(), "")
-    }
-
-    #[test]
-    fn test_load_config_6() {
+    fn test_load_config() {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
 
@@ -346,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn test_init_config_7() {
+    fn test_init_config() {
         let tauri_app = tauri::test::mock_app();
         let handle = tauri_app.handle().clone();
 
@@ -371,7 +280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_register_nxm_8() {
+    fn test_register_nxm() {
         let mock_registry = MockRegistryManager;
         let nxm_result = register_nxm(&mock_registry);
         assert!(nxm_result.is_ok());

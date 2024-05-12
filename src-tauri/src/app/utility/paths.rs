@@ -37,6 +37,14 @@ pub fn config_path() -> PathBuf {
     config_path
 }
 
+#[command]
+pub fn profile_path() -> PathBuf {
+    let mut mods_path = dirs::config_dir().unwrap();
+    mods_path.push("Junimo");
+    mods_path.push("profile.json");
+    mods_path
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,6 +94,16 @@ mod tests {
         test_dir.push("config.json");
 
         let result = config_path();
+        assert_eq!(result, test_dir);
+    }
+
+    #[test]
+    fn temp_profile_path() {
+        let mut test_dir = dirs::config_dir().unwrap();
+        test_dir.push("Junimo");
+        test_dir.push("profile.json");
+
+        let result = profile_path();
         assert_eq!(result, test_dir);
     }
 }
