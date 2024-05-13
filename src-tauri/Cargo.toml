@@ -43,6 +43,7 @@ sysinfo = "0.30.11"
 walkdir = "2.3"
 json-strip-comments = "1.0.2"
 tauri-plugin-fs = "2.0.0-beta.7"
+tauri-plugin-dialog = "2.0.0-beta.7"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
