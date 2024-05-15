@@ -18,6 +18,10 @@ export default function File() {
         await invoke('open_search_browser');
     }
 
+    async function test() {
+        await invoke('test');
+    }
+
     return (
         <MenubarMenu>
             <MenubarTrigger>File</MenubarTrigger>
@@ -31,7 +35,7 @@ export default function File() {
                     Open NexusMod
                 </MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem>Share</MenubarItem>
+                <MenubarItem onClick={test}>Share</MenubarItem>
                 <MenubarSeparator />
                 <MenubarItem>Print</MenubarItem>
             </MenubarContent>

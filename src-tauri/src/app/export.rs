@@ -1,18 +1,15 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use rfd::FileDialog;
-use tauri::{command, WebviewUrl, Window};
-use crate::app::{console, mod_installation, mods, profiles};
 use crate::app::profiles::Profile;
 use crate::app::utility::{paths, zips};
+use crate::app::{console, mod_installation, mods, profiles};
+use rfd::FileDialog;
+use std::fs;
+use std::path::{Path, PathBuf};
+use tauri::{command, Runtime, WebviewUrl, Window};
 
 #[command]
-pub async fn open_export(handle: tauri::AppHandle) {
-    tauri::WebviewWindowBuilder::new(
-        &handle,
-        "Exporter",
-        WebviewUrl::App("/exporter".into())
-    ).title("Export")
+pub async fn open_export<R: Runtime>(handle: tauri::AppHandle<R>) {
+    tauri::WebviewWindowBuilder::new(&handle, "Exporter", WebviewUrl::App("/exporter".into()))
+        .title("Export")
         .min_inner_size(600.0, 350.0)
         .inner_size(600.0, 350.0)
         .transparent(true)
@@ -21,15 +18,13 @@ pub async fn open_export(handle: tauri::AppHandle) {
 }
 
 #[command]
-pub async fn close_export(window: Window) {
+pub async fn close_export<R: Runtime>(window: Window<R>) {
     window.close().unwrap();
 }
 
 #[command]
 pub fn select_export_dir() -> String {
-    let file = FileDialog::new()
-        .set_directory(".")
-        .pick_folder();
+    let file = FileDialog::new().set_directory(".").pick_folder();
 
     if let Some(path) = file {
         path.to_string_lossy().to_string()
@@ -39,7 +34,7 @@ pub fn select_export_dir() -> String {
 }
 
 #[command]
-pub fn export_profile(handle: tauri::AppHandle, name: &str, path: &str) -> bool {
+pub fn export_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path: &str) -> bool {
     if name == "All Profiles" {
         export_all(handle, path);
         true
@@ -49,8 +44,8 @@ pub fn export_profile(handle: tauri::AppHandle, name: &str, path: &str) -> bool 
     }
 }
 
-fn export_one(handle: tauri::AppHandle, name: &str, path: &str) {
-    let profiles = profiles::get_profiles();
+fn export_one<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path: &str) {
+    let profiles = profiles::get_profiles(paths::profile_path());
     let mut profile: Profile = Profile {
         name: "".to_string(),
         mods: vec![],
@@ -88,10 +83,13 @@ fn export_one(handle: tauri::AppHandle, name: &str, path: &str) {
 
     zips::zip_directory(&export_dir, &export_zip_path).unwrap();
     fs::remove_dir_all(&export_dir).unwrap();
-    console::add_line(&handle, "<span class=\"console-green\">[Junimo] Exported profile</span>".to_string());
+    console::add_line(
+        &handle,
+        "<span class=\"console-green\">[Junimo] Exported profile</span>".to_string(),
+    );
 }
 
-fn export_all(handle: tauri::AppHandle, path: &str) {
+fn export_all<R: Runtime>(handle: tauri::AppHandle<R>, path: &str) {
     let mut export_dir = paths::temp_path();
     export_dir.push("export_all");
     fs::create_dir_all(&export_dir).unwrap();
@@ -118,5 +116,72 @@ fn export_all(handle: tauri::AppHandle, path: &str) {
 
     zips::zip_directory(&export_dir, &export_zip_path).unwrap();
     fs::remove_dir_all(&export_dir).unwrap();
-    console::add_line(&handle, "<span class=\"console-green\">[Junimo] Exported all profiles and mods</span>".to_string());
+    console::add_line(
+        &handle,
+        "<span class=\"console-green\">[Junimo] Exported all profiles and mods</span>".to_string(),
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use tauri::test::mock_builder;
+    use tempfile::tempdir;
+    use crate::app::app_state::AppState;
+
+    use super::*;
+
+    fn create_app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::App<R> {
+        let (app_state, rx) = AppState::new();
+
+        builder
+            .invoke_handler(tauri::generate_handler![
+                open_export,
+                close_export
+            ])
+            .manage(app_state.clone())
+            // remove the string argument to use your app's config file
+            .build(tauri::generate_context!())
+            .expect("failed to build app")
+    }
+    #[test]
+    fn test_open_export() {
+        let app = create_app(mock_builder());
+        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .unwrap();
+
+        let res = tauri::test::get_ipc_response(
+            &webview,
+            tauri::webview::InvokeRequest {
+                cmd: "open_export".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "http://tauri.localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::default(),
+                headers: Default::default(),
+            },
+        );
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_close_export() {
+        let app = create_app(mock_builder());
+        let webview = tauri::WebviewWindowBuilder::new(&app, "Export", Default::default())
+            .build()
+            .unwrap();
+
+        let res = tauri::test::get_ipc_response(
+            &webview,
+            tauri::webview::InvokeRequest {
+                cmd: "close_export".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "http://tauri.localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::default(),
+                headers: Default::default(),
+            },
+        );
+        assert!(res.is_ok());
+    }
 }

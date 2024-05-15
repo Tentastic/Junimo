@@ -1,20 +1,20 @@
-use std::{fs, thread};
-use std::fs::File;
-use std::io::Write;
-use futures_util::StreamExt;
-use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, command, Manager, State};
 use crate::app::api::{mods_api, nexuswebsocket};
 use crate::app::app_state::AppState;
-use crate::app::{console, mods};
 use crate::app::mods::{get_all_mods, ModInfo};
 use crate::app::utility::paths;
+use crate::app::{console, mods};
+use futures_util::StreamExt;
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::Write;
+use std::{fs, thread};
+use tauri::{command, AppHandle, Manager, State};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DownloadPaths {
     name: String,
     short_name: String,
-    URI: String
+    URI: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -23,7 +23,7 @@ pub struct Download {
     pub size: u64,
     pub current: u64,
     pub aborted: bool,
-    pub finished: bool
+    pub finished: bool,
 }
 
 #[command]
@@ -36,7 +36,8 @@ pub async fn start_download(app_handle: &AppHandle, url_str: &str, app_state: Ap
     let key = nexuswebsocket::load_key();
 
     let client = reqwest::Client::new();
-    let res = client.get(mods_api::get_url(url_str))
+    let res = client
+        .get(mods_api::get_download_link(url_str))
         .header("accept", "application/json")
         .header("apikey", key)
         .send()
@@ -73,7 +74,7 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         size: total_size,
         current: 0,
         aborted: false,
-        finished: false
+        finished: false,
     };
 
     app_handle.emit("download", &download).unwrap();
@@ -110,14 +111,16 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         download.finished = true;
         mods::unpack_manifest(&path, &infos.name);
         app_handle.emit("download", &download).unwrap();
-        let console_output = format!("<span class=\"console-green\">Downloaded</span>: {}", infos.name);
+        let console_output = format!(
+            "<span class=\"console-green\">Downloaded</span>: {}",
+            infos.name
+        );
         console::add_line(&app_handle, console_output);
-    }
-    else {
+    } else {
         let mut mod_list = get_all_mods();
         mod_list.retain(|mod_info| mod_info.name != infos.name);
         mods::save_mods(mod_list);
-        fs::remove_file (temp_path).unwrap();
+        fs::remove_file(temp_path).unwrap();
         download.aborted = true;
         app_handle.emit("download", &download).unwrap();
     }

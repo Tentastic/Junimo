@@ -1,14 +1,17 @@
-use std::{fs, io};
+use crate::app::utility::paths;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use tauri::{AppHandle, Manager};
+use std::{fs, io};
+use tauri::Manager;
 use walkdir::WalkDir;
-use zip::write::{FileOptions, SimpleFileOptions};
-use zip::{CompressionMethod, ZipArchive, ZipWriter};
-use crate::app::{console, mods};
-use crate::app::utility::paths;
+use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter};
 
-pub fn extract_manifest<R: io::Read + io::Seek>(mut archive: ZipArchive<R>, destination: &Path, name: &str) -> zip::result::ZipResult<()> {
+pub fn extract_manifest<R: io::Read + io::Seek>(
+    mut archive: ZipArchive<R>,
+    destination: &Path,
+    name: &str,
+) -> zip::result::ZipResult<()> {
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         if !file.name().contains("manifest.json") {
@@ -17,7 +20,6 @@ pub fn extract_manifest<R: io::Read + io::Seek>(mut archive: ZipArchive<R>, dest
         let split = file.name().split('/').collect::<Vec<&str>>();
         let new_path = format!("{}/{}", name, split[split.len() - 1]);
         let outpath = destination.join(new_path);
-
 
         if file.name().ends_with('/') {
             if !outpath.exists() {
@@ -44,7 +46,7 @@ pub fn extract_manifest<R: io::Read + io::Seek>(mut archive: ZipArchive<R>, dest
     Ok(())
 }
 
-pub fn zip_directory(src_dir: &Path, dst_file: &Path)-> zip::result::ZipResult<()> {
+pub fn zip_directory(src_dir: &Path, dst_file: &Path) -> zip::result::ZipResult<()> {
     let file = File::create(dst_file)?;
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter();
@@ -56,7 +58,7 @@ pub fn zip_directory(src_dir: &Path, dst_file: &Path)-> zip::result::ZipResult<(
 
     for entry in it.filter_map(|e| e.ok()) {
         let path = entry.path();
-        let mut zip_path = PathBuf::from(&src_dir_name.to_string());  // Start with the source directory name
+        let mut zip_path = PathBuf::from(&src_dir_name.to_string()); // Start with the source directory name
         zip_path.push(path.strip_prefix(src_dir).unwrap());
 
         // Check if it is a directory or a file
@@ -73,7 +75,10 @@ pub fn zip_directory(src_dir: &Path, dst_file: &Path)-> zip::result::ZipResult<(
     Ok(())
 }
 
-pub fn extract_zip<R: io::Read + io::Seek>(mut archive: ZipArchive<R>, destination: &Path) -> zip::result::ZipResult<()> {
+pub fn extract_zip<R: io::Read + io::Seek>(
+    mut archive: ZipArchive<R>,
+    destination: &Path,
+) -> zip::result::ZipResult<()> {
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         let replaced_string = file.name().replace("\\", "/");
@@ -83,7 +88,6 @@ pub fn extract_zip<R: io::Read + io::Seek>(mut archive: ZipArchive<R>, destinati
                 continue;
             }
         }
-
 
         let outpath = match file.enclosed_name() {
             Some(path) => destination.join(path),

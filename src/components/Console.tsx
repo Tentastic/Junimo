@@ -134,21 +134,23 @@ export default function Console({playing, bigConsole}: {playing: boolean, bigCon
     }, [isResizing]);
 
     return (
-        <div style={{ height: `${size.height}px` }}
-            className={clsx(
-            "h-32 min-h-32 max-h-[50vh] border-border bg-card hover:bg-muted transition duration-150 cursor-pointer pl-2 col-span-4 pb-2 border rounded-lg w-full overflow-hidden",
-        )}
+        <div className="relative">
+            <div className="absolute w-full h-4 min-h-4 max-h-4 -top-2 cursor-n-resize z-40"
+                 onMouseDown={onMouseDown}/>
+            <div style={{height: `${size.height}px`}}
+                 className={clsx(
+                     "relative h-32 min-h-32 max-h-[50vh] border-border bg-card pl-2 col-span-4 py-1 border rounded-lg w-full overflow-hidden",
+                 )}
             >
-            <div className="w-full h-2 min-h-2 max-h-2 cursor-n-resize"
-                 onMouseDown={onMouseDown} />
-            <div ref={containerRef} className={clsx(
-                "h-full flex overflow-auto",
-                flexReverse ? "flex-col-reverse" : "flex-col",
-            )}>
-                <div>
-                    {lines.map((line, index) => (
-                        <div key={index} dangerouslySetInnerHTML={{__html: line}}></div>
-                    ))}
+                <div ref={containerRef} className={clsx(
+                    "h-full flex overflow-auto",
+                    flexReverse ? "flex-col-reverse" : "flex-col",
+                )}>
+                    <div>
+                        {lines.map((line, index) => (
+                            <div key={index} dangerouslySetInnerHTML={{__html: line}}></div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

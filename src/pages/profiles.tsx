@@ -18,29 +18,34 @@ export default function Profiles() {
     const [newProfile, setNewProfile] = useState<string>("");
 
     async function loadProfile() {
-        const loadedProfiles = await invoke<Profile[]>('get_profiles');
+        const profilePath = await invoke<string>('profile_path');
+        const loadedProfiles = await invoke<Profile[]>('get_profiles', {path: profilePath});
         setProfiles(loadedProfiles);
     }
 
     async function addProfile() {
-        const newLoadedProfiles = await invoke<Profile[]>('add_profile', {name: newProfile});
+        const profilePath = await invoke<string>('profile_path');
+        const newLoadedProfiles = await invoke<Profile[]>('add_profile', {name: newProfile, path: profilePath});
         setProfiles(newLoadedProfiles);
         setNewProfile("");
     }
 
     async function removeProfile(name: string) {
-        const newLoadedProfiles = await invoke<Profile[]>('remove_profile', {name: name});
+        const profilePath = await invoke<string>('profile_path');
+        const newLoadedProfiles = await invoke<Profile[]>('remove_profile', {name: name, path: profilePath});
         setProfiles(newLoadedProfiles);
     }
 
     async function modifyProfile(name: string) {
-        const newLoadedProfiles = await invoke<Profile[]>('modify_profile', {name: name, newName: newProfile});
+        const profilePath = await invoke<string>('profile_path');
+        const newLoadedProfiles = await invoke<Profile[]>('modify_profile', {name: name, newName: newProfile, path: profilePath});
         setProfiles(newLoadedProfiles);
         setNewProfile("");
     }
 
     async function changeProfile(name: string) {
-        const newLoadedProfiles = await invoke<Profile[]>('change_current_profile', {name: name});
+        const profilePath = await invoke<string>('profile_path');
+        const newLoadedProfiles = await invoke<Profile[]>('change_current_profile', {name: name, path: profilePath});
         setProfiles(newLoadedProfiles);
 
     }

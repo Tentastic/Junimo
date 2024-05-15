@@ -1,21 +1,28 @@
-use std::{fs, io, thread};
+use crate::app::utility::{paths, zips};
+use crate::app::{console, mods};
+use futures_util::future::err;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use futures_util::future::err;
+use std::{fs, io, thread};
 use tauri::{AppHandle, Manager};
 use zip::ZipArchive;
-use crate::app::{console, mods};
-use crate::app::utility::{paths, zips};
 
 pub fn start_installation(app_handle: AppHandle, path: &PathBuf) -> Result<(), String> {
     let cloned_handle = app_handle.clone();
     let path_clone = path.clone();
     thread::spawn(move || {
-        console::add_line(&app_handle, "<span class=\"console-green\">[Junimo] Started to add mod</span>".to_string());
+        console::add_line(
+            &app_handle,
+            "<span class=\"console-green\">[Junimo] Started to add mod</span>".to_string(),
+        );
 
         let zip_file_path = path_clone;
         let output_folder_path = paths::temp_path();
-        let to_path = format!("{}/{}", output_folder_path.display(), zip_file_path.file_name().unwrap().to_str().unwrap());
+        let to_path = format!(
+            "{}/{}",
+            output_folder_path.display(),
+            zip_file_path.file_name().unwrap().to_str().unwrap()
+        );
         fs::copy(&zip_file_path, &to_path).unwrap();
         let copied_zip_file = File::open(&to_path).unwrap();
         let zip_archive = ZipArchive::new(copied_zip_file).unwrap();
@@ -57,7 +64,8 @@ fn list_dirs_in_directory(path: &Path) -> Vec<PathBuf> {
 }
 
 fn install_progress(amount: &usize, max: &usize) -> String {
-    let mut new_console_output = "<span class=\"console-gray\">[Junimo] Install progress [".to_string();
+    let mut new_console_output =
+        "<span class=\"console-gray\">[Junimo] Install progress [".to_string();
     let calculated_percentage = calculate_percentage(amount, max);
     for rin in 0..calculated_percentage {
         new_console_output = format!("{}█", new_console_output);
@@ -68,7 +76,11 @@ fn install_progress(amount: &usize, max: &usize) -> String {
     format!("{}]</span>", new_console_output)
 }
 
-fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: ZipArchive<R>, destination: &Path) {
+fn extract_mods<R: io::Read + io::Seek>(
+    app_handle: &AppHandle,
+    mut archive: ZipArchive<R>,
+    destination: &Path,
+) {
     let mut main_dir = "".to_string();
     let mut has_manifest = false;
     let max = archive.len();
@@ -78,7 +90,10 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
         let mut file = archive.by_index(i);
 
         if file.is_err() {
-            console::modify_line(&app_handle, format!("<span class=\"console-red\">[Junimo] Mod couldn't be installed</span>"));
+            console::modify_line(
+                &app_handle,
+                format!("<span class=\"console-red\">[Junimo] Mod couldn't be installed</span>"),
+            );
             return;
         }
         let file = file.unwrap();
@@ -135,7 +150,11 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
     }
 
     if !has_manifest {
-        console::add_line(&app_handle, "<span class=\"console-red\">[Junimo] Not a valid Stardew Valley mod!</span>".to_string());
+        console::add_line(
+            &app_handle,
+            "<span class=\"console-red\">[Junimo] Not a valid Stardew Valley mod!</span>"
+                .to_string(),
+        );
         &app_handle.emit("reload", false).unwrap();
         return;
     }
@@ -146,34 +165,47 @@ fn extract_mods<R: io::Read + io::Seek>(app_handle: &AppHandle, mut archive: Zip
     if depth < 3 {
         let dir = outpath.clone();
         directories = vec![dir];
-    }
-    else {
+    } else {
         directories = list_dirs_in_directory(&outpath);
     }
 
     match copy_into_mod(&directories, &outpath, &depth) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(_) => {
-            console::add_line(&app_handle, "<span class=\"console-red\">[Junimo] Failed to install mod</span>".to_string());
+            console::add_line(
+                &app_handle,
+                "<span class=\"console-red\">[Junimo] Failed to install mod</span>".to_string(),
+            );
             &app_handle.emit("reload", false).unwrap();
             return;
         }
     }
 
-    console::modify_line(&app_handle, format!("<span class=\"console-green\">[Junimo] Mod installed</span>"));
+    console::modify_line(
+        &app_handle,
+        format!("<span class=\"console-green\">[Junimo] Mod installed</span>"),
+    );
     &app_handle.emit("reload", true).unwrap();
 }
 
-fn copy_into_mod(directories: &Vec<PathBuf>, outpath: &PathBuf, depth: &usize) -> Result<(), String> {
+fn copy_into_mod(
+    directories: &Vec<PathBuf>,
+    outpath: &PathBuf,
+    depth: &usize,
+) -> Result<(), String> {
     for dir in directories {
         let mut new_dir_name = "".to_string();
         for entry in fs::read_dir(&dir).unwrap() {
             match entry {
                 Ok(entry) => {
-                    if entry.file_name().to_string_lossy().contains("manifest.json") {
+                    if entry
+                        .file_name()
+                        .to_string_lossy()
+                        .contains("manifest.json")
+                    {
                         new_dir_name = mods::add_mod_through_manifest(&entry.path());
                     }
-                },
+                }
                 Err(_) => {
                     continue;
                 }
@@ -191,12 +223,16 @@ fn copy_into_mod(directories: &Vec<PathBuf>, outpath: &PathBuf, depth: &usize) -
             return Err("Failed to rename directory".to_string());
         }
 
-        let new_path = format!("{}/{}.zip", paths::mod_path().to_string_lossy(), &new_dir_name);
+        let new_path = format!(
+            "{}/{}.zip",
+            paths::mod_path().to_string_lossy(),
+            &new_dir_name
+        );
         let zip_result = zips::zip_directory(&renamed_dir, Path::new(&new_path));
         match zip_result {
             Ok(_) => {
                 fs::remove_dir_all(&renamed_dir).unwrap();
-            },
+            }
             Err(_) => {
                 return Err("Failed to zip directory".to_string());
             }

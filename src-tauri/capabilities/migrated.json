@@ -3,7 +3,11 @@
   "description": "permissions that were migrated from v1",
   "local": true,
   "windows": [
-    "main"
+    "main",
+    "Config",
+    "Profiles",
+    "Exporter",
+    "Importer"
   ],
   "permissions": [
     "path:default",
@@ -18,10 +22,15 @@
     "resources:default",
     "menu:default",
     "tray:default",
+    "dialog:allow-open",
     "fs:default",
     {
       "identifier": "fs:allow-read",
-      "allow": [{ "path": "$APPDATA/*" }]
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
     }
   ]
 }

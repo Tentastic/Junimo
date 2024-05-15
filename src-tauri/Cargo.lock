@@ -2655,6 +2655,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.4",
  "rfd",
+ "semver",
  "serde",
  "serde_json",
  "smol",
@@ -2671,6 +2672,8 @@ dependencies = [
  "tungstenite",
  "url",
  "walkdir",
+ "widestring",
+ "winapi",
  "winreg 0.52.0",
  "zip",
 ]
@@ -6140,6 +6143,12 @@ dependencies = [
  "windows 0.56.0",
  "windows-core 0.56.0",
 ]
+
+[[package]]
+name = "widestring"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7219d36b6eac893fa81e84ebe06485e7dcbb616177469b142df14f1f4deb1311"
 
 [[package]]
 name = "winapi"

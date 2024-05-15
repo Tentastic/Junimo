@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 use tauri::command;
+use crate::app::config;
+use crate::app::utility::paths;
 
 pub fn appdata_path() -> PathBuf {
     let mut config_path = dirs::config_dir().unwrap();
@@ -27,6 +29,12 @@ pub fn temp_path() -> PathBuf {
     temp_path.push("Junimo");
     fs::create_dir_all(&temp_path).unwrap();
     temp_path
+}
+
+pub fn get_game_path() -> PathBuf {
+    let config = config::get_config(config_path());
+    let game_path = config.game_path;
+    PathBuf::from(game_path)
 }
 
 #[command]

@@ -1,13 +1,13 @@
+use crate::app;
+use crate::app::util::app_path;
+use app::api::nexuswebsocket;
+use bincode;
+use futures_util::SinkExt;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
-use serde::{Deserialize, Serialize};
 use tauri::command;
-use futures_util::{SinkExt};
-use bincode;
-use app::api::nexuswebsocket;
-use crate::app;
-use crate::app::util::app_path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
@@ -16,7 +16,7 @@ pub struct User {
     name: String,
     is_premium: Option<bool>,
     is_supporter: Option<bool>,
-    profile_url: String
+    profile_url: String,
 }
 
 #[command]
@@ -25,9 +25,9 @@ pub fn load_user() -> Option<User> {
         let mut file = File::open(app_path("user.stp")).unwrap();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
-        let user : User = bincode::deserialize(&buffer[..]).unwrap();
+        let user: User = bincode::deserialize(&buffer[..]).unwrap();
 
-        return Some(user)
+        return Some(user);
     }
 
     None
@@ -60,7 +60,8 @@ async fn user_info() -> Option<User> {
     match loaded_user {
         None => {
             let client = reqwest::Client::new();
-            let res = client.get("https://api.nexusmods.com/v1/users/validate.json")
+            let res = client
+                .get("https://api.nexusmods.com/v1/users/validate.json")
                 .header("accept", "application/json")
                 .header("apikey", key)
                 .send()
@@ -76,10 +77,7 @@ async fn user_info() -> Option<User> {
             } else {
                 None
             }
-        },
-        Some(value) => {
-            Some(value)
-        },
+        }
+        Some(value) => Some(value),
     }
 }
-

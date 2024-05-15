@@ -13,7 +13,8 @@ export default function Mods({setKey, profile, setProfile, selected, setSelected
     {setKey: Dispatch<SetStateAction<number>>, profile: Profile | undefined, setProfile: Dispatch<SetStateAction<Profile | undefined>>, selected: number[], setSelected: Dispatch<SetStateAction<number[]>>}) {
 
     async function loadProfile() {
-        const newProfile = await invoke<Profile>('get_current_profile');
+        const profilePath = await invoke<string>('profile_path');
+        const newProfile = await invoke<Profile>('get_current_profile', {path: profilePath});
         setProfile(newProfile);
     }
 

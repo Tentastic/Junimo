@@ -18,8 +18,8 @@ export default function Profiles({setKey}: {setKey: Dispatch<SetStateAction<numb
     const [selectedProfile, setSelectedProfile] = useState<string>("Default");
 
     async function loadProfile() {
-        console.log("Select")
-        const loadedProfiles = await invoke<Profile[]>('get_profiles');
+        const profilePath = await invoke<string>('profile_path');
+        const loadedProfiles = await invoke<Profile[]>('get_profiles', {path: profilePath});
         for (let i = 0; i < loadedProfiles.length; i++) {
             if (loadedProfiles[i].currently) {
                 setSelectedProfile(loadedProfiles[i].name);
@@ -34,7 +34,8 @@ export default function Profiles({setKey}: {setKey: Dispatch<SetStateAction<numb
     }
 
     async function changeProfile(name: string) {
-        const newLoadedProfiles = await invoke<Profile[]>('change_current_profile', {name: name});
+        const profilePath = await invoke<string>('profile_path');
+        const newLoadedProfiles = await invoke<Profile[]>('change_current_profile', {name: name, path: profilePath});
         setSelectedProfile(name);
         setProfiles(newLoadedProfiles);
         setKey(prevKey => prevKey + 1);

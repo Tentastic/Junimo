@@ -19,13 +19,17 @@ impl RealRegistryManager {
 
 impl RegistryManager for RealRegistryManager {
     fn create_subkey(&self, key: &str) -> Result<Box<dyn RegistryManager>, String> {
-        self.reg_key.create_subkey(key)
-            .map(|(key, _)| Box::new(RealRegistryManager { reg_key: key }) as Box<dyn RegistryManager>)
+        self.reg_key
+            .create_subkey(key)
+            .map(|(key, _)| {
+                Box::new(RealRegistryManager { reg_key: key }) as Box<dyn RegistryManager>
+            })
             .map_err(|e| e.to_string())
     }
 
     fn set_value(&self, key: &str, value: &str) -> Result<(), String> {
-        self.reg_key.set_value(key, &value.to_string())
+        self.reg_key
+            .set_value(key, &value.to_string())
             .map_err(|e| e.to_string())
     }
 }

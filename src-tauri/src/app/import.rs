@@ -1,22 +1,19 @@
-use std::{fs, io};
+use crate::app::profiles::Profile;
+use crate::app::utility::{paths, zips};
+use crate::app::{console, mods, profiles};
+use rfd::FileDialog;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use rfd::FileDialog;
+use std::{fs, io};
 use tauri::{command, Manager, WebviewUrl, Window};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
-use crate::app::{console, mods, profiles};
-use crate::app::profiles::Profile;
-use crate::app::utility::{paths, zips};
 
 #[command]
 pub async fn open_import(handle: tauri::AppHandle) {
-    tauri::WebviewWindowBuilder::new(
-        &handle,
-        "Importer",
-        WebviewUrl::App("/importer".into())
-    ).title("Import")
+    tauri::WebviewWindowBuilder::new(&handle, "Importer", WebviewUrl::App("/importer".into()))
+        .title("Import")
         .min_inner_size(600.0, 350.0)
         .inner_size(600.0, 350.0)
         .transparent(true)
@@ -47,7 +44,12 @@ pub fn select_import_dir() -> String {
 pub fn import_profile(handle: tauri::AppHandle, path: &str, all: bool) -> bool {
     let path_as_buff = Path::new(path);
     let file = fs::File::open(&path_as_buff).unwrap();
-    let mut file_name = path_as_buff.file_name().unwrap().to_str().unwrap().to_string();
+    let mut file_name = path_as_buff
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
     file_name = file_name.replace(".zip", "");
 
     let mut temp_path = paths::temp_path();
@@ -79,21 +81,28 @@ fn import_all(handle: &tauri::AppHandle, temp_path: &PathBuf) {
         if path.file_name().unwrap().to_string_lossy().contains(".zip") {
             junimo_mod_path.push(path.file_name().unwrap().to_string_lossy().to_string());
             fs::copy(&path, &junimo_mod_path).unwrap();
-        }
-        else if path.file_name().unwrap().to_string_lossy().contains(".json") {
+        } else if path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains(".json")
+        {
             junimo_path.push(path.file_name().unwrap().to_string_lossy().to_string());
             fs::copy(&path, &junimo_path).unwrap();
         }
     }
     fs::remove_dir_all(&temp_path).unwrap();
-    let profiles = profiles::get_profiles();
+    let profiles = profiles::get_profiles(paths::profile_path());
     &handle.emit("profile-update", &profiles).unwrap();
-    console::add_line(&handle, "<span class=\"console-green\">[Junimo] Imported all profiles</span>".to_string());
+    console::add_line(
+        &handle,
+        "<span class=\"console-green\">[Junimo] Imported all profiles</span>".to_string(),
+    );
 }
 
 fn import_one(handle: &tauri::AppHandle, temp_path: &PathBuf) {
     let mut mods = mods::get_all_mods();
-    let mut profiles = profiles::get_profiles();
+    let mut profiles = profiles::get_profiles(paths::profile_path());
 
     let walkdir = WalkDir::new(&temp_path);
     let it = walkdir.into_iter();
@@ -111,8 +120,12 @@ fn import_one(handle: &tauri::AppHandle, temp_path: &PathBuf) {
             if !check_path.exists() {
                 fs::copy(&path, &junimo_mod_path).unwrap();
             }
-        }
-        else if path.file_name().unwrap().to_string_lossy().contains("profile.json") {
+        } else if path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("profile.json")
+        {
             let data_raw = fs::read_to_string(path).unwrap();
             let data = data_raw.as_str();
             let import_profile: Vec<Profile> = serde_json::from_str(data).unwrap();
@@ -127,9 +140,12 @@ fn import_one(handle: &tauri::AppHandle, temp_path: &PathBuf) {
             }
         }
     }
-    profiles::save_profiles(&profiles);
+    profiles::save_profiles(&profiles, &paths::profile_path());
     mods::save_mods(mods);
     fs::remove_dir_all(&temp_path).unwrap();
     &handle.emit("profile-update", &profiles).unwrap();
-    console::add_line(&handle, "<span class=\"console-green\">[Junimo] Imported profile</span>".to_string());
+    console::add_line(
+        &handle,
+        "<span class=\"console-green\">[Junimo] Imported profile</span>".to_string(),
+    );
 }

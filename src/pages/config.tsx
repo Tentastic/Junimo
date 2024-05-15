@@ -7,6 +7,7 @@ import {invoke} from "@tauri-apps/api/core";
 import {User} from "@models/user";
 import NexusMods from "@assets/NexusMods.png";
 import {Switch} from "@components/ui/switch.tsx";
+import { open } from '@tauri-apps/plugin-dialog';
 
 export default function Config() {
     const [] = useState("");
@@ -15,8 +16,6 @@ export default function Config() {
     const [nmxSwitch, setNmxSwitch] = useState(false);
 
     async function loadConfig() {
-
-
         try {
             const configPath = await invoke<string>('config_path');
             const config = await invoke<ConfigModel>('get_config', {path: configPath});
@@ -34,9 +33,17 @@ export default function Config() {
     }
 
     async function fetchConfigPath() {
-        const configPath = await invoke<string>('config_path');
-        const path = await invoke<string>('select_game_dir', {path: configPath});
-        setGamePath(path);
+        const path = await open({
+            multiple: false,
+            directory: true,
+        });
+        if (path !== null) {
+            setGamePath(path);
+        }
+
+        //const configPath = await invoke<string>('config_path');
+        //const path = await invoke<string>('select_game_dir', {path: configPath});
+        //setGamePath(path);
     }
 
     async function save() {

@@ -7,6 +7,7 @@ import {Input} from "@components/ui/input.tsx";
 import {Folder} from "lucide-react";
 import {clsx} from "clsx";
 import JunimoDance from "../assets/JunimoDance.gif";
+import {open} from "@tauri-apps/plugin-dialog";
 
 export default function Exporter() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -26,8 +27,14 @@ export default function Exporter() {
     }
 
     async function fetchPath() {
-        const path = await invoke<string>('select_export_dir');
-        setExportPath(path);
+        const path = await open({
+            multiple: false,
+            directory: true,
+        });
+        if (path !== null) {
+            setExportPath(path);
+        }
+
         if (selectedProfile !== "" && path !== "") {
             setValid(true);
         }
@@ -49,7 +56,8 @@ export default function Exporter() {
     }
 
     async function loadProfile() {
-        const loadedProfiles = await invoke<Profile[]>('get_profiles');
+        const profilePath = await invoke<string>('profile_path');
+        const loadedProfiles = await invoke<Profile[]>('get_profiles', {path: profilePath});
         setProfiles(loadedProfiles);
     }
 

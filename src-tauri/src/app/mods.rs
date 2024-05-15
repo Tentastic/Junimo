@@ -1,45 +1,43 @@
-use std::fs::File;
-use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
-use rfd::FileDialog;
-use zip::read::ZipArchive;
-use std::{fs, thread};
-use regex::Regex;
-use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, command, Manager};
-use url::Url;
-use crate::app::{console, mod_installation, mods, profiles};
 use crate::app::utility::{browser, paths, zips};
+use crate::app::{mod_installation, profiles};
+use rfd::FileDialog;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use tauri::{command, AppHandle, Manager};
+use zip::read::ZipArchive;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModInfo {
     pub name: String,
-    summary: String,
-    description: Option<String>,
-    picture_url: Option<String>,
-    mod_downloads: u64,
-    mod_unique_downloads: u64,
-    uid: u64,
-    mod_id: u32,
-    game_id: u32,
-    allow_rating: bool,
-    domain_name: String,
-    category_id: u32,
+    pub summary: String,
+    pub description: Option<String>,
+    pub picture_url: Option<String>,
+    pub mod_downloads: u64,
+    pub mod_unique_downloads: u64,
+    pub uid: u64,
+    pub mod_id: u32,
+    pub game_id: u32,
+    pub allow_rating: bool,
+    pub domain_name: String,
+    pub category_id: u32,
     pub version: String,
-    endorsement_count: u32,
-    created_timestamp: u64,
-    created_time: String,
-    updated_timestamp: u64,
-    updated_time: String,
-    author: String,
-    uploaded_by: String,
-    uploaded_users_profile_url: String,
-    contains_adult_content: bool,
-    status: String,
-    available: bool,
+    pub endorsement_count: u32,
+    pub created_timestamp: u64,
+    pub created_time: String,
+    pub updated_timestamp: u64,
+    pub updated_time: String,
+    pub author: String,
+    pub uploaded_by: String,
+    pub uploaded_users_profile_url: String,
+    pub contains_adult_content: bool,
+    pub status: String,
+    pub available: bool,
     pub unique_id: Option<String>,
-    more_info: Option<String>,
-    dependencies: Option<Vec<Dependency>>,
+    pub more_info: Option<String>,
+    pub dependencies: Option<Vec<Dependency>>,
 }
 
 impl PartialEq for ModInfo {
@@ -95,9 +93,9 @@ pub async fn open_search_browser(handle: AppHandle) {
 }
 
 #[command]
-pub fn get_installed_mods() -> Vec<ModInfo> {
+pub async fn get_installed_mods(app: tauri::AppHandle) -> Vec<ModInfo> {
     let path = paths::mod_json_path();
-    let current_profile = profiles::get_current_profile();
+    let current_profile = profiles::get_current_profile(app, paths::profile_path()).await;
 
     if !path.exists() {
         let mods: Vec<ModInfo> = Vec::new();
@@ -105,7 +103,11 @@ pub fn get_installed_mods() -> Vec<ModInfo> {
     }
 
     let all_mods = get_all_mods();
-    all_mods.iter().filter(|mod_info| !current_profile.mods.contains(mod_info)).cloned().collect()
+    all_mods
+        .iter()
+        .filter(|mod_info| !current_profile.mods.contains(mod_info))
+        .cloned()
+        .collect()
 }
 
 pub fn get_all_mods() -> Vec<ModInfo> {
@@ -124,15 +126,22 @@ pub fn get_all_mods() -> Vec<ModInfo> {
 pub fn insert_mod_info(infos: &ModInfo) {
     let mut mod_list = get_all_mods();
 
-    if mod_list.iter().any(|mod_info| mod_info.name == infos.name && mod_info.version == infos.version) {
+    if mod_list
+        .iter()
+        .any(|mod_info| mod_info.name == infos.name && mod_info.version == infos.version)
+    {
         return;
-    }
-    else if mod_list.iter().any(|mod_info| mod_info.name == infos.name && mod_info.version != infos.version) {
-        let index = mod_list.iter().position(|mod_info| mod_info.name == infos.name).unwrap();
+    } else if mod_list
+        .iter()
+        .any(|mod_info| mod_info.name == infos.name && mod_info.version != infos.version)
+    {
+        let index = mod_list
+            .iter()
+            .position(|mod_info| mod_info.name == infos.name)
+            .unwrap();
         mod_list[index] = infos.clone();
         save_mods(mod_list);
-    }
-    else {
+    } else {
         mod_list.push(infos.clone());
         save_mods(mod_list);
     }
@@ -166,7 +175,7 @@ pub fn uninstall_mod(app_handle: AppHandle, name: &str) {
     mods.retain(|mod_info| mod_info.name != name);
     save_mods(mods);
 
-    let mut profile = profiles::get_profiles();
+    let mut profile = profiles::get_profiles(paths::profile_path());
     let mut new_profiles = Vec::new();
     for p in profile {
         if p.mods.iter().any(|mod_info| mod_info.name == name) {
@@ -175,14 +184,14 @@ pub fn uninstall_mod(app_handle: AppHandle, name: &str) {
             let new_profile = profiles::Profile {
                 name: p.name,
                 mods: new_mods,
-                currently: p.currently
+                currently: p.currently,
             };
             new_profiles.push(new_profile);
         } else {
             new_profiles.push(p);
         }
     }
-    profiles::save_profiles(&new_profiles);
+    profiles::save_profiles(&new_profiles, &paths::profile_path());
 
     let mut mod_path = paths::mod_path();
     let path = format!("{}/{}.zip", mod_path.display(), name);
@@ -207,7 +216,7 @@ pub fn get_manifest(path: &PathBuf) -> Manifest {
     output = output.replace("UniqueId", "UniqueID");
     json_strip_comments::strip(&mut output).unwrap();
     match extract_json(&output) {
-        Some(json) =>  output = json,
+        Some(json) => output = json,
         None => println!("No JSON found"),
     }
     println!("{}", output);
@@ -221,12 +230,12 @@ pub fn get_dependencies(path: &PathBuf) -> Option<Vec<Dependency>> {
     output = output.replace("UniqueId", "UniqueID");
     json_strip_comments::strip(&mut output).unwrap();
     match extract_json(&output) {
-        Some(json) =>  {
+        Some(json) => {
             output = json;
             let manifest: Manifest = serde_json::from_str(&output).unwrap();
             manifest.dependencies
-        },
-        None => None
+        }
+        None => None,
     }
 }
 
@@ -237,7 +246,7 @@ pub fn add_mod_through_manifest(path: &PathBuf) -> String {
     output = output.replace("UniqueId", "UniqueID");
     json_strip_comments::strip(&mut output).unwrap();
     match extract_json(&output) {
-        Some(json) =>  output = json,
+        Some(json) => output = json,
         None => println!("No JSON found"),
     }
     let manifest: Manifest = serde_json::from_str(&output).unwrap();
@@ -249,7 +258,7 @@ pub fn add_mod_through_manifest(path: &PathBuf) -> String {
             for dep in deps {
                 dependencies.push(dep);
             }
-        },
+        }
         None => {
             println!("No dependencies found");
         }
@@ -258,7 +267,7 @@ pub fn add_mod_through_manifest(path: &PathBuf) -> String {
     match manifest.content_pack {
         Some(content_pack) => {
             dependencies.push(content_pack);
-        },
+        }
         None => {
             println!("No content pack found");
         }
@@ -291,7 +300,7 @@ pub fn add_mod_through_manifest(path: &PathBuf) -> String {
         available: true,
         unique_id: Some(manifest.unique_id),
         more_info: None,
-        dependencies: Some(dependencies)
+        dependencies: Some(dependencies),
     };
 
     insert_mod_info(&new_mod);
@@ -303,10 +312,8 @@ fn extract_json(input: &str) -> Option<String> {
     let end_pos = input.rfind('}');
 
     match (start_pos, end_pos) {
-        (Some(start), Some(end)) if end > start => {
-            Some(input[start..=end].to_string())
-        },
-        _ => None, // Return None if no valid JSON is found
+        (Some(start), Some(end)) if end > start => Some(input[start..=end].to_string()),
+        _ => None,
     }
 }
 
@@ -321,7 +328,7 @@ pub fn insert_unique(name: &str) {
     output = output.replace("UniqueId", "UniqueID");
     json_strip_comments::strip(&mut output).unwrap();
     match extract_json(&output) {
-        Some(json) =>  output = json,
+        Some(json) => output = json,
         None => println!("No JSON found"),
     }
     let manifest: Manifest = serde_json::from_str(&output).unwrap();
@@ -333,8 +340,7 @@ pub fn insert_unique(name: &str) {
             new_mod_info.unique_id = Some(manifest.unique_id.clone());
             new_mod_info.dependencies = manifest.dependencies.clone();
             new_mods.push(new_mod_info);
-        }
-        else {
+        } else {
             new_mods.push(mod_info);
         }
     }
@@ -356,35 +362,44 @@ pub fn check_dependencies(mods: Vec<ModInfo>) -> Vec<ModInfo> {
             Some(dependencies) => {
                 let mut mode = 0;
                 for dependency in dependencies {
-                    if cloned_mods.iter().any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone())) {
+                    if cloned_mods
+                        .iter()
+                        .any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone()))
+                    {
                         mod_info.more_info = None;
                         continue;
                     }
                     if dependency.is_required == None || dependency.is_required == Some(true) {
                         let split = dependency.unique_id.split('.').collect::<Vec<&str>>();
-                        mod_info.more_info = Some(format!("<span style=\"color: #cf3838\">Missing mod: {}</span>", split[split.len() - 1]));
+                        mod_info.more_info = Some(format!(
+                            "<span style=\"color: #cf3838\">Missing mod: {}</span>",
+                            split[split.len() - 1]
+                        ));
                         break;
-                    }
-                    else {
+                    } else {
                         if mode == 2 {
                             continue;
                         }
 
                         let split = dependency.unique_id.split('.').collect::<Vec<&str>>();
-                        mod_info.more_info = Some(format!("<span style=\"color: #f5d442\">Recommended mod: {}</span>", split[split.len() - 1]));
+                        mod_info.more_info = Some(format!(
+                            "<span style=\"color: #f5d442\">Recommended mod: {}</span>",
+                            split[split.len() - 1]
+                        ));
                         continue;
                     }
                 }
                 new_modinfo.push(mod_info.clone());
             }
             None => {
-                println!("Hier 3");
             }
         }
     }
 
     new_modinfo
 }
+
+
 
 pub fn any_missing_dependencies(mods: &Vec<ModInfo>) -> bool {
     let cloned_mods = mods.clone();
@@ -399,20 +414,21 @@ pub fn any_missing_dependencies(mods: &Vec<ModInfo>) -> bool {
         match &mod_info.dependencies {
             Some(dependencies) => {
                 for dependency in dependencies {
-                    if cloned_mods.iter().any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone())) {
+                    if cloned_mods
+                        .iter()
+                        .any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone()))
+                    {
                         continue;
                     }
                     if dependency.is_required == None || dependency.is_required == Some(true) {
                         return true;
-                    }
-                    else {
+                    } else {
                         continue;
                     }
                 }
                 new_modinfo.push(mod_info.clone());
             }
             None => {
-                println!("Hier 3");
             }
         }
     }
