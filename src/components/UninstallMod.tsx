@@ -11,12 +11,15 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@components/ui/dialog.tsx";
+import {useModsState} from "@components/ModsProvider.tsx";
 
 
-export default function UninstallMod({name, setKey}: {name: string, setKey: Dispatch<SetStateAction<number>>}) {
+export default function UninstallMod({name}: {name: string}) {
+    const { reloadKey } = useModsState();
+
     async function uninstallMods() {
         await invoke<ModInfos[]>('uninstall_mod', {name: name});
-        setKey(prevKey => prevKey + 1);
+        reloadKey[1](prevKey => prevKey + 1);
     }
 
     return (

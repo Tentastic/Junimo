@@ -9,25 +9,26 @@ import {
     DialogTrigger
 } from "@components/ui/dialog.tsx";
 import {ModInfos} from "@models/mods.ts";
+import {useModsState} from "@components/ModsProvider.tsx";
 
 
-export default function UninstallAll({setKey, mods, numbers}: {setKey: Dispatch<SetStateAction<number>>, mods: ModInfos[], numbers: number[]}) {
+export default function UninstallAll({mods, names}: {mods: ModInfos[] | undefined, names: string[]}) {
+    const { reloadKey } = useModsState();
+
     async function uninstallMods() {
         console.log(mods)
-        console.log(numbers)
         let newMods: string[] = [];
-        for (let i = 0; i < numbers.length; i++) {
-            newMods.push(mods[numbers[i]].name);
-            console.log(mods[numbers[i]].name);
+        if (mods) {
+            //Remove names from mods through mods.name
+            newMods = mods.filter(mod => names.includes(mod.name)).map(mod => mod.name);
         }
-
         await invoke("uninstall_mods", {mods: newMods});
-        setKey(prevKey => prevKey + 1);
+        reloadKey[1](prevKey => prevKey + 1);
     }
 
     return (
         <>
-            {numbers.length > 0 ? (
+            {names.length > 0 ? (
                 <Dialog>
                     <DialogTrigger className="w-full">
                         <button className="w-full relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm
