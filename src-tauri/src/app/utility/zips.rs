@@ -1,11 +1,78 @@
-use crate::app::utility::paths;
+use std::{fs, io};
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
-use tauri::Manager;
+
+use tauri::{AppHandle, Manager};
 use walkdir::WalkDir;
-use zip::write::SimpleFileOptions;
 use zip::{ZipArchive, ZipWriter};
+use zip::write::SimpleFileOptions;
+
+use crate::app::{console, mod_installation};
+use crate::app::utility::paths;
+
+pub fn unpack_zip<R: io::Read + io::Seek>(
+    app_handle: &AppHandle,
+    mut archive: ZipArchive<R>,
+    destination: &Path,
+    max: usize
+) -> Result<String, String> {
+    let mut main_dir = "".to_string();
+    let mut has_manifest = false;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).unwrap();
+        let replaced = file.name().replace("\\", "/");
+        let split = replaced.split('/').collect::<Vec<&str>>();
+
+        if split[0] != main_dir {
+            main_dir = split[0].to_string();
+        }
+
+        if replaced.contains("__MACOSX") {
+            continue;
+        }
+
+        let outpath = match file.enclosed_name() {
+            Some(path) => destination.join(path),
+            None => continue,
+        };
+
+        if file.name().ends_with('/') {
+            if !outpath.exists() {
+                fs::create_dir_all(&outpath).unwrap();
+            }
+        } else {
+            if let Some(parent) = outpath.parent() {
+                if !parent.exists() {
+                    fs::create_dir_all(parent).unwrap();
+                }
+            }
+            let mut outfile = File::create(&outpath).unwrap();
+            io::copy(&mut file, &mut outfile).unwrap();
+
+            if outpath.to_string_lossy().contains("manifest.json") {
+                has_manifest = true;
+            }
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Some(mode) = file.unix_mode() {
+                std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode))?;
+            }
+        }
+
+        console::modify_line(&app_handle, mod_installation::install_progress(&i, &max).to_string());
+    }
+
+    return if !has_manifest {
+        Err("No manifest found".to_string())
+    }
+    else {
+        Ok(main_dir)
+    }
+}
 
 pub fn extract_manifest<R: io::Read + io::Seek>(
     mut archive: ZipArchive<R>,
@@ -78,7 +145,8 @@ pub fn zip_directory(src_dir: &Path, dst_file: &Path) -> zip::result::ZipResult<
 pub fn extract_zip<R: io::Read + io::Seek>(
     mut archive: ZipArchive<R>,
     destination: &Path,
-) -> zip::result::ZipResult<()> {
+) -> zip::result::ZipResult<String> {
+    let mut root_name = "".to_string();
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         let replaced_string = file.name().replace("\\", "/");
@@ -88,6 +156,7 @@ pub fn extract_zip<R: io::Read + io::Seek>(
                 continue;
             }
         }
+        root_name = split[0].to_string();
 
         let outpath = match file.enclosed_name() {
             Some(path) => destination.join(path),
@@ -116,5 +185,5 @@ pub fn extract_zip<R: io::Read + io::Seek>(
             }
         }
     }
-    Ok(())
+    Ok(root_name)
 }
