@@ -5,18 +5,24 @@ use crate::app::utility::{paths, zips};
 use crate::app::{config, console, mods, profiles};
 use portable_pty::{native_pty_system, Child, CommandBuilder, PtyPair, PtySize};
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
-use std::{fs, thread};
+use std::{env, fs, thread};
 use sysinfo::System;
 use tauri::{command, AppHandle, Manager, State};
 use zip::ZipArchive;
 
+/// Starts the game through the frontend
+///
+/// * `app_handle` - The app handle
+/// * `app_state` - The app state
+///
+/// # Returns Command result
 #[command]
 pub async fn start_game(app_handle: AppHandle, app_state: State<'_, AppState>) -> Result<(), String> {
     console::empty_line(&app_handle);
@@ -41,6 +47,12 @@ pub async fn start_game(app_handle: AppHandle, app_state: State<'_, AppState>) -
     Ok(())
 }
 
+/// Initializes the game by installing and uninstalling mods and starting SMAPI
+///
+/// * `original_app_handle` - The app handle
+/// * `original_stop_game` - The stop game signal
+///
+/// # Returns Init game result
 async fn init_game(
     original_app_handle: AppHandle,
     original_stop_game: Arc<Mutex<bool>>,
@@ -48,50 +60,53 @@ async fn init_game(
     let app_handle = original_app_handle.clone();
     let stop_game = original_stop_game.clone();
 
+    // Spawn a new thread to initialize the game without blocking the main thread
     tokio::spawn(async move {
         let config = config::get_config(paths::config_path());
-        let profile = profiles::get_current_profile(original_app_handle, paths::profile_path()).await;
+        let profile = profiles::get_current_profile(paths::profile_path()).await;
         let mods = profile.mods;
-        let mod_path = format!("{}/mods", config.game_path.clone());
+        let mod_path = paths::mod_path().display().to_string();
         let directories = get_directories(&mod_path).unwrap();
 
-        let mod_names: HashMap<String, String> = mods
+        // Puts all mod names into a HashSet
+        let mod_names: HashSet<String> = mods
             .iter()
-            .filter_map(|mod_info| match get_dir_name(mod_info) {
-                Ok(dir_name) => Some((dir_name, mod_info.name.clone())),
-                Err(_) => None,
-            })
+            .filter_map(|mod_info| Some(mod_info.name.clone()))
             .collect();
 
+        // Puts all directories to remove into a Vec
         let dirs_to_remove = directories
             .iter()
-            .filter(|dir| !mod_names.contains_key(*dir))
+            .filter(|dir| !mod_names.contains(*dir) && !dir.contains("."))
             .collect::<Vec<_>>();
-        let mods_to_add = mod_names
+
+        // Puts all directories to add into a Vec
+        let mods_to_add = directories
             .iter()
-            .filter_map(|(dir, name)| {
-                if !directories.contains(&dir) {
-                    Some(mods.iter().find(|mod_info| mod_info.name == *name).unwrap())
-                } else {
-                    None
-                }
-            })
+            .filter(|dir| mod_names.contains(&dir.replace(".","").to_string()) &&
+                dir.contains("."))
             .collect::<Vec<_>>();
 
+        // Uninstall and install mods
         uninstall_mods(&app_handle, &mod_path, dirs_to_remove);
-        install_missing_mods(&app_handle, &config, mods_to_add, &stop_game)
-            .map_err(|_| {
-                console::add_line(
-                    &app_handle,
-                    "<span style=\"color: #c22f2f\">[Junimo] Failed to install mods</span>"
-                        .to_string(),
-                );
-            })
-            .unwrap_or_default();
+        install_missing_mods(&app_handle, &mod_path, mods_to_add);
 
-        let any_missing_mods = mods::any_missing_dependencies(&mods);
-        if any_missing_mods {
+        let config = config::get_config(paths::config_path());
+
+        // Check if there are any missing dependencies
+        let any_missing_mods = any_missing_dependencies(&mods);
+        if any_missing_mods && (config.block_on_missing_requirements.is_none()
+            || (config.block_on_missing_requirements.is_some() && config.block_on_missing_requirements.unwrap())) {
             console::add_line(&app_handle, "<span style=\"color: #c22f2f\">[Junimo] Missing dependencies detected. Please check your mods.</span>".to_string());
+            app_handle.emit("close", true).unwrap();
+            return;
+        }
+
+        // Check if there are any broken mods
+        let broken_mods = !mods.iter().filter(|mod_info| mod_info.is_broken.is_some()).collect::<Vec<_>>().is_empty();
+        if broken_mods && (config.block_on_broken.is_none()
+            || (config.block_on_broken.is_some() && config.block_on_broken.unwrap())) {
+            console::add_line(&app_handle, "<span style=\"color: #c22f2f\">[Junimo] Some of your currently installed mods are broken. Please remove or update them.</span>".to_string());
             app_handle.emit("close", true).unwrap();
             return;
         }
@@ -102,6 +117,54 @@ async fn init_game(
     Ok(())
 }
 
+/// Checks if there are any missing dependencies
+///
+/// * `mods` - The list of mods to check
+///
+/// # Returns true if there are any missing dependencies, false otherwise
+pub fn any_missing_dependencies(mods: &Vec<ModInfo>) -> bool {
+    let cloned_mods = mods.clone();
+    let mut new_modinfo = Vec::new();
+
+    for mut mod_info in mods.clone() {
+        // If the mod has no dependencies, skip the check and add it to the new_modinfo
+        if mod_info.dependencies.is_none() {
+            new_modinfo.push(mod_info.clone());
+            continue;
+        }
+
+        match &mod_info.dependencies {
+            Some(dependencies) => {
+                for dependency in dependencies {
+                    // If the dependency was found, skip the check and add it to the new_modinfo
+                    if cloned_mods
+                        .iter()
+                        .any(|mod_info| mod_info.unique_id == Some(dependency.unique_id.clone()))
+                    {
+                        continue;
+                    }
+                    // If the dependency was not found, and it is required, return true
+                    if dependency.is_required == None || dependency.is_required == Some(true) {
+                        return true;
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                new_modinfo.push(mod_info.clone());
+            }
+            None => {
+            }
+        }
+    }
+    false
+}
+
+/// Gets all mod directories
+///
+/// * `path` - The path to get the directories from (usually the default Junimo mod path)
+///
+/// # Returns a vector of strings containing all directories
 fn get_directories<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<String>> {
     let mut directories = Vec::new();
     let entries = fs::read_dir(path)?;
@@ -117,35 +180,16 @@ fn get_directories<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<String>> {
     Ok(directories)
 }
 
-fn get_dir_name(mod_info: &ModInfo) -> Result<String, String> {
-    let zip_path = format!("{}.zip", mod_info.name);
-    let mut path = paths::mod_path();
-    path.push(&zip_path);
-
-    let zip_file = File::open(&path).unwrap();
-    let zip_archive = ZipArchive::new(zip_file);
-    match zip_archive {
-        Ok(mut zip_archive) => {
-            let first_file = zip_archive.by_index(0).unwrap();
-            let enclosed_name = first_file
-                .enclosed_name()
-                .ok_or_else(|| anyhow::anyhow!("Failed to get file name"))
-                .unwrap();
-            let enclosed_name = enclosed_name.to_string_lossy();
-            let enclosed_name = enclosed_name.to_string().replace("\\", "/");
-
-            let parts: Vec<&str> = enclosed_name.split('/').collect();
-
-            Ok(parts.first().unwrap().clone().to_string())
-        }
-        Err(_) => Err("Failed to open zip archive".to_string()),
-    }
-}
-
+/// Simply sets a point in front of the mod's directory names
+///
+/// * `app_handle` - The app handle
+/// * `mod_path` - The path to the mods (usually the default Junimo mod path)
+/// * `dirs_to_remove` - The directories to remove
 fn uninstall_mods(app_handle: &AppHandle, mod_path: &String, dir_to_remove: Vec<&String>) {
     for dir in dir_to_remove {
         let dir_path = format!("{}/{}", mod_path, dir);
-        match fs::remove_dir_all(dir_path) {
+        let new_path = format!("{}/.{}", mod_path, dir);
+        match fs::rename(&dir_path, &new_path) {
             Ok(_) => {
                 console::add_line(
                     &app_handle,
@@ -164,64 +208,30 @@ fn uninstall_mods(app_handle: &AppHandle, mod_path: &String, dir_to_remove: Vec<
                     ),
                 );
             }
-        };
+        }
     }
 }
 
+/// Installs missing mods by removing the point in front of the mod's directory names
+///
+/// * `app_handle` - The app handle
+/// * `mod_path` - The path to the mods (usually the default Junimo mod path)
+/// * `mods_to_add` - The mods to add
 fn install_missing_mods(
     app_handle: &AppHandle,
-    config: &Config,
-    mods_to_add: Vec<&ModInfo>,
-    stop_game: &Arc<Mutex<bool>>,
-) -> Result<(), String> {
-    let game_mod_path = format!("{}/Mods", config.game_path.clone());
-    let default_mod_path = paths::mod_path();
-
-    for mods in mods_to_add {
-        if let Ok(mut lock) = stop_game.lock() {
-            if !*lock {
-                return Ok(());
-            }
-        }
-
-        let zip_file_path = format!("{}/{}.zip", &default_mod_path.display(), mods.name);
-        let zip_file = File::open(&zip_file_path)
-            .map_err(|_| {
-                console::add_line(
-                    &app_handle,
-                    format!(
-                        "<span style=\"color: #c22f2f\">[Junimo] Failed to open {}</span>",
-                        mods.name
-                    ),
-                );
-            })
-            .ok();
-        if zip_file.is_none() {
-            continue;
-        }
-
-        let zip_archive = ZipArchive::new(zip_file.unwrap())
-            .map_err(|_| {
-                console::add_line(
-                    &app_handle,
-                    format!(
-                        "<span style=\"color: #c22f2f\">[Junimo] Failed to open {}</span>",
-                        mods.name
-                    ),
-                );
-            })
-            .ok();
-        if zip_archive.is_none() {
-            continue;
-        }
-
-        match zips::extract_zip(zip_archive.unwrap(), &PathBuf::from(&game_mod_path)) {
+    mod_path: &String,
+    mods_to_add: Vec<&String>,
+) {
+    for dir in mods_to_add {
+        let dir_path = format!("{}/{}", mod_path, dir);
+        let new_path = format!("{}/{}", mod_path, dir.replace(".",""));
+        match fs::rename(&dir_path, &new_path) {
             Ok(_) => {
                 console::add_line(
                     &app_handle,
                     format!(
                         "<span style=\"color: #2fb565\">[Junimo] Installed {}</span>",
-                        mods.name
+                        &dir.replace(".","")
                     ),
                 );
             }
@@ -230,27 +240,35 @@ fn install_missing_mods(
                     &app_handle,
                     format!(
                         "<span style=\"color: #c22f2f\">[Junimo] Failed to install {}</span>",
-                        mods.name
+                        &dir.replace(".","")
                     ),
                 );
             }
         }
     }
-
-    Ok(())
 }
 
+/// This function starts the StardewModdingAPI
+///
+/// * `app_handle` - The app handle
+/// * `app_state` - The app state
 fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) {
     let stop_signal = app_state.clone();
 
+    // Set the environment variable for the mods path
+    let key = "SMAPI_MODS_PATH";
+    env::set_var(key, paths::mod_path().display().to_string());
+
+    // Get the path to the SMAPI executable. On Windows it is a .exe file, on other platforms it is a .dll file
     #[cfg(target_os = "windows")]
     let game_path = paths::get_game_path().join("StardewModdingAPI.exe");
-
     #[cfg(not(target_os = "windows"))]
     let game_path = paths::get_game_path().join("StardewModdingAPI.dll");
 
+    // Open a new PTY
     let pty_system = native_pty_system();
 
+    // Open a new PTY pair
     let mut pair = pty_system
         .openpty(PtySize {
             rows: 24,
@@ -260,11 +278,15 @@ fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) {
         })
         .unwrap();
 
+    // Spawn the SMAPI executable
     let cmd = CommandBuilder::new(game_path);
     let mut child = pair.slave.spawn_command(cmd).unwrap();
 
+    // Read the console output into Junimo's console
     read_console(&pair, app_handle.clone());
 
+    // Spawn a new thread to check if the game should be stopped.
+    // If the game should be stopped, kill the child process and close the PTY
     thread::spawn(move || loop {
         if set_stop_game(&stop_signal, &child) {
             child.kill().unwrap();
@@ -274,25 +296,43 @@ fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) {
             app_handle.clone().emit("close", true).unwrap();
             break;
         }
+        // Sleep for 200ms to reduce CPU usage
         sleep(Duration::from_millis(200));
     });
 }
 
+/// Reads the console output and adds it to Junimo's console
+///
+/// * `pair` - The PTY pair we created
+/// * `app_handle` - The app handle
 fn read_console(pair: &PtyPair, app_handle: AppHandle) {
+    // Create a new reader and read the console output line by line
     let reader = pair.master.try_clone_reader().unwrap();
     let mut reader = BufReader::new(reader);
     let mut lines = reader.lines();
+
+    // Create a regex to remove the title from the console output
     let title_regex = Regex::new(r"\x1b\]0;.*?\x07").unwrap();
 
+    // Spawn a new thread to read the console output
     thread::spawn(move || loop {
         let line = lines.next();
+        // Match the line and add it to Junimo's console if it is not empty or an error
         match line {
             Some(Ok(line)) => {
+                // Remove the title from the console output
                 let clean_line = title_regex.replace_all(&line, "");
+
+                // Check if the line was not the title and add it to Junimo's console
                 if !clean_line.is_empty() {
+                    // Convert the ANSI console output to HTML
                     let html_line = ansi_to_html::convert(&clean_line.to_string()).unwrap();
+
+                    // Make anything between square brackets bold
                     let mut bolded = html_line.replace("[", "<b>[");
                     bolded = bolded.replace("]", "]</b>");
+
+                    // Add the line to Junimo's console
                     console::add_line(&app_handle, bolded);
                 }
             }
@@ -306,7 +346,14 @@ fn read_console(pair: &PtyPair, app_handle: AppHandle) {
     });
 }
 
+/// Sets the stop game signal to stop SMAPI and the game
+///
+/// * `stop_signal` - The stop signal
+/// * `child` - The child process
+///
+/// # Returns true if the game should be stopped, false otherwise
 fn set_stop_game(stop_signal: &Arc<Mutex<bool>>, child: &Box<dyn Child + Send + Sync>) -> bool {
+    // Lock the stop signal and check if the game should be stopped
     if let Ok(mut lock) = stop_signal.lock() {
         if !*lock {
             *lock = true;
@@ -314,8 +361,10 @@ fn set_stop_game(stop_signal: &Arc<Mutex<bool>>, child: &Box<dyn Child + Send + 
         }
     }
 
+    // Check if the child process is still running
     match child.process_id() {
         Some(pid) => {
+            // Get the child process by its PID
             let s = System::new_all();
             let child_processes = s
                 .processes()
@@ -323,6 +372,7 @@ fn set_stop_game(stop_signal: &Arc<Mutex<bool>>, child: &Box<dyn Child + Send + 
                 .filter(|proc| proc.pid() == sysinfo::Pid::from_u32(pid))
                 .collect::<Vec<_>>();
 
+            // If the child process is not running, return true
             if child_processes.len() == 0 {
                 return true;
             }
@@ -335,6 +385,9 @@ fn set_stop_game(stop_signal: &Arc<Mutex<bool>>, child: &Box<dyn Child + Send + 
     false
 }
 
+/// Tauri command to stop the game by setting the stop game signal to true
+///
+/// * `app_state` - The app state
 #[command]
 pub fn stop_game(app_state: State<'_, AppState>) {
     let mut signal = app_state.stop_game.lock().unwrap();
