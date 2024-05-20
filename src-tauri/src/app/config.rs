@@ -14,6 +14,10 @@ pub struct Config {
     init_app: bool,
     pub game_path: String,
     handle_nxm: bool,
+    pub activate_requirements: Option<bool>,
+    pub block_on_missing_requirements: Option<bool>,
+    pub activate_broken: Option<bool>,
+    pub block_on_broken: Option<bool>,
 }
 
 impl Config {
@@ -22,10 +26,15 @@ impl Config {
             init_app,
             game_path,
             handle_nxm,
+            activate_requirements: None,
+            block_on_missing_requirements: None,
+            activate_broken: None,
+            block_on_broken: None,
         }
     }
 }
 
+/// Gets config from config.json file in appdata
 #[command]
 pub fn get_config(path: PathBuf) -> Config {
     let data_raw = fs::read_to_string(path).unwrap();
@@ -33,12 +42,14 @@ pub fn get_config(path: PathBuf) -> Config {
     serde_json::from_str(data).unwrap()
 }
 
+/// Saves config into config.json file
 fn save_config(config: &Config, path: &PathBuf) {
     let json = serde_json::to_string(&config).unwrap();
     let mut file = File::create(path).expect("Fail");
     file.write_all(json.as_bytes()).unwrap();
 }
 
+/// Open config window
 #[command]
 pub async fn open_config<R: Runtime>(handle: tauri::AppHandle<R>) {
     tauri::WebviewWindowBuilder::new(&handle, "Config", WebviewUrl::App("/config".into()))
@@ -63,16 +74,11 @@ pub fn init_config<R: Runtime>(
     dir: &Path,
 ) -> Result<Option<WebviewWindow<R>>, String> {
     let mut path = dir.to_owned();
-    path.push("Junimo");
     fs::create_dir_all(&path).unwrap();
     path.push("config.json");
 
     if !path.exists() {
-        let config = Config {
-            init_app: false,
-            game_path: "".to_owned(),
-            handle_nxm: false,
-        };
+        let config = Config::new(false, "".to_string(), false);
         save_config(&config, &path);
 
         let window_result =
@@ -133,24 +139,17 @@ mod tests {
 
     #[test]
     fn test_new_config() {
-        let expected_config = Config {
-            init_app: false,
-            game_path: "".to_string(),
-            handle_nxm: false,
-        };
+        let config = Config::new(false, "".to_string(), false);
         let result = Config::new(false, "".to_string(), false);
-        assert_eq!(result.init_app, expected_config.init_app);
+        assert_eq!(result.init_app, config.init_app);
     }
 
     #[test]
     fn test_get_config() {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
-        let expected_config = Config {
-            init_app: false,
-            game_path: "".to_string(),
-            handle_nxm: false,
-        };
+        let config = Config::new(false, "".to_string(), false);
+        let expected_config = Config::new(false, "".to_string(), false);
         let serialized_payload = serde_json::to_string(&expected_config).unwrap();
         let mut file = File::create(&config_path).expect("Fail");
         writeln!(file, "{}", serialized_payload).expect("Couldn't write");
@@ -164,11 +163,7 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
 
-        let config = Config {
-            init_app: false,
-            game_path: "".to_string(),
-            handle_nxm: false,
-        };
+        let config = Config::new(false, "".to_string(), false);
 
         save_config(&config, &config_path);
 
@@ -206,13 +201,9 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
 
-        let expected_config = Config {
-            init_app: false,
-            game_path: "".to_string(),
-            handle_nxm: true,
-        };
+        let config = Config::new(false, "".to_string(), false);
         let config_wrap = ConfigWrap {
-            config: expected_config,
+            config,
             path: config_path,
         };
         let serialized_payload = serde_json::to_string(&config_wrap).unwrap();
@@ -238,11 +229,7 @@ mod tests {
         let tmp_dir = tempdir().unwrap();
         let config_path = tmp_dir.path().join("config.json");
 
-        let config = Config {
-            init_app: false,
-            game_path: "".to_string(),
-            handle_nxm: false,
-        };
+        let config = Config::new(false, "".to_string(), false);
 
         save_config(&config, &config_path);
 
