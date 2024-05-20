@@ -48,11 +48,16 @@ fn link_request(domain: String, path_segments: Vec<&str>, mut query_pairs: Parse
 }
 
 pub async fn get_infos(url_str: &str) -> Option<ModInfo> {
-    let api_url = get_download_link(url_str);
+    let url = Url::parse(url_str).unwrap();
+    let path_segments: Vec<&str> = url.path_segments().map(|c| c.collect()).unwrap_or_else(Vec::new);
+    let api_url = format!(
+        "https://api.nexusmods.com/v1/games/{}/mods/{}.json",
+        url.domain().unwrap(),
+        path_segments[1]
+    );
 
     let client = reqwest::Client::new();
-    let res = client
-        .get(&api_url)
+    let res = client.get(&api_url)
         .header("accept", "application/json")
         .header("apikey", nexuswebsocket::load_key())
         .send()
@@ -60,9 +65,12 @@ pub async fn get_infos(url_str: &str) -> Option<ModInfo> {
         .unwrap();
 
     if res.status().is_success() {
-        let mod_info: ModInfo = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let body = res.text().await.unwrap();
+        let body_str = body.as_str();
+        let mod_info: ModInfo = serde_json::from_str(body_str).unwrap();
         Some(mod_info)
-    } else {
+    }
+    else {
         None
     }
 }
