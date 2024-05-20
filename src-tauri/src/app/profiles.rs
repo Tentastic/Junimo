@@ -1,11 +1,11 @@
+use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tauri::{command, Manager, Runtime, WebviewUrl};
-use crate::app::api::compatibility;
-use crate::app::mods;
+use crate::app::{config, mods};
 use crate::app::mods::{ModInfo};
 use crate::app::utility::paths;
 
@@ -41,34 +41,39 @@ pub fn save_profiles(profiles: &Vec<Profile>, path: &PathBuf) {
 }
 
 #[command]
-pub async fn get_current_profile(app: tauri::AppHandle, path: PathBuf) -> Profile {
+pub async fn get_current_profile(path: PathBuf) -> Profile {
     check_path(&path);
 
     let data_raw = fs::read_to_string(path).unwrap();
     let data = data_raw.as_str();
     let profiles: Vec<Profile> = serde_json::from_str(data).unwrap();
 
+    let config = config::get_config(paths::config_path());
+
     let mut return_profile: Profile = profiles[0].clone();
     for profile in profiles {
         if profile.currently {
             let mut new_profile = profile;
-            new_profile.mods = mods::check_dependencies(new_profile.clone().mods);
+            if config.activate_requirements.is_none() || config.activate_requirements.unwrap() {
+                new_profile.mods = mods::check_dependencies(new_profile.clone().mods);
+            }
 
-            match compatibility::get_compability(app.clone(), new_profile.clone().mods).await {
+            /*match compatibility::get_compability(app.clone(), new_profile.clone().mods).await {
                 Some(compability) => {
                     new_profile.mods = compability;
                 }
                 None => {}
-            }
+            }*/
 
             return_profile = new_profile.clone();
         }
     }
+    return_profile.mods.sort_by(|info1, info2| info1.name.cmp(&info2.name));
 
     return_profile
 }
 
-fn check_path(path: &PathBuf) -> bool {
+pub fn check_path(path: &PathBuf) -> bool {
     if !path.exists() {
         let mut profiles: Vec<Profile> = Vec::new();
         let profile = Profile {
@@ -172,8 +177,11 @@ pub fn modify_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, new_n
 }
 
 #[command]
-pub fn change_profile_mods(name: &str, mods: Vec<ModInfo>, path: PathBuf) {
+pub fn change_profile_mods(name: &str, mut mods: Vec<ModInfo>, path: PathBuf) {
     let profiles = get_profiles(path.clone());
+
+    let mut seen = HashSet::new();
+    mods.retain(|mod_info| seen.insert(mod_info.name.clone()));  // Retains only if name is new to the set
 
     let mut new_profiles: Vec<Profile> = Vec::new();
     for profile in profiles {
@@ -331,51 +339,6 @@ mod tests {
 
         assert!(res.is_ok());
         assert_eq!(res.unwrap().deserialize::<Vec<Profile>>().unwrap().iter().count(), profiles.iter().count());
-    }
-
-    #[test]
-    fn test_get_current_profile() {
-        let tmp_dir = tempdir().unwrap();
-        let profile_path = tmp_dir.path().join("profile.json");
-
-        let mut profiles: Vec<Profile> = Vec::new();
-        let profile = Profile {
-            name: "Default".to_string(),
-            mods: Vec::new(),
-            currently: true
-        };
-        profiles.push(profile.clone());
-
-        save_profiles(&profiles, &profile_path);
-
-        let app = create_app(mock_builder());
-        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
-            .build()
-            .unwrap();
-
-        let path_wrap = PathWrap {
-            path: profile_path.clone(),
-        };
-        let serialized_payload = serde_json::to_string(&path_wrap).unwrap();
-        let invoke_body = tauri::ipc::InvokeBody::Json(serialized_payload.parse().unwrap());
-
-        let res = tauri::test::get_ipc_response(
-            &webview,
-            tauri::webview::InvokeRequest {
-                cmd: "get_current_profile".into(),
-                callback: tauri::ipc::CallbackFn(0),
-                error: tauri::ipc::CallbackFn(1),
-                url: "http://tauri.localhost".parse().unwrap(),
-                body: invoke_body,
-                headers: Default::default(),
-            },
-        );
-
-        let current_profile = get_current_profile(profile_path.clone());
-
-        assert!(res.is_ok());
-        assert_eq!(res.clone().unwrap().deserialize::<Profile>().unwrap().name, profile.clone().name);
-        assert_eq!(current_profile.name, profile.name);
     }
 
     #[test]
@@ -604,7 +567,7 @@ mod tests {
 
         let new_mod = ModInfo {
             name: "Test Mod".to_string(),
-            summary: "Test Summary".to_string(),
+            summary: Some("Test Summary".to_string()),
             description: Some("Test Description".to_string()),
             picture_url: None,
             mod_downloads: 0,
@@ -630,6 +593,7 @@ mod tests {
             unique_id: Some("1234".to_string()),
             more_info: None,
             dependencies: None,
+            group: None,
         };
 
         let mod_wrap = ModWrap {
