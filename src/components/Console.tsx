@@ -6,7 +6,7 @@ import {ConsoleModel} from "@models/console.ts";
 import {invoke} from "@tauri-apps/api/core";
 import {ModInfos} from "@models/mods.ts";
 
-export default function Console({playing, bigConsole}: {playing: boolean, bigConsole: boolean}) {
+export default function Console() {
     const [lines, setLines] = useState<string[]>([]);
 
     const [size, setSize] = useState({ width: 200, height: 128 });
