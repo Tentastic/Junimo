@@ -1,18 +1,13 @@
 use std::collections::HashMap;
-use std::ffi::OsString;
-use std::fs;
-use std::os::windows::ffi::OsStrExt;
-use std::ptr::null_mut;
+
+use reqwest::Response;
 use serde::{Deserialize, Serialize};
 use url::Url;
-use widestring::U16CString;
-use winapi::shared::minwindef::{DWORD, LPVOID};
-use winapi::um::winnt::HANDLE;
-use winapi::um::winver::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
-use crate::app::{mods, profiles};
-use crate::app::mods::ModInfo;
-use crate::app::utility::paths;
 
+use crate::app::mods::ModInfo;
+use crate::app::utility::version_extractor;
+
+/// Struct to extract id and installed version of each mod
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct SmapiMod {
     #[serde(rename = "id")]
@@ -21,6 +16,7 @@ struct SmapiMod {
     installed_version: String,
 }
 
+/// Wraps mods into a wrapper for the post request
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct SmapiPostWrapper {
     #[serde(rename = "mods")]
@@ -34,11 +30,30 @@ struct SmapiPostWrapper {
     include_extend_metadata: bool,
 }
 
+impl SmapiPostWrapper {
+    pub fn new(mods: Vec<SmapiMod>, api_version: Option<String>, game_version: String) -> Self {
+        SmapiPostWrapper {
+            mods,
+            api_version,
+            game_version,
+            #[cfg(target_os = "windows")]
+            platform: "Windows".to_string(),
+            #[cfg(target_os = "linux")]
+            platform: "Linux".to_string(),
+            #[cfg(target_os = "macos")]
+            platform: "Mac".to_string(),
+            include_extend_metadata: true,
+        }
+    }
+}
+
+/// Struct to extract the result of the post request
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct SmapiResult {
     mods: Vec<SmapiWrapper>,
 }
 
+/// Struct that wraps the data of each mod in the post request
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct SmapiWrapper {
     id: String,
@@ -48,12 +63,14 @@ struct SmapiWrapper {
     errors: Vec<String>,
 }
 
+/// Struct that wraps the suggested update of each mod
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct SuggestesUpdate {
     version: String,
     url: String,
 }
 
+/// Struct that contains all metadata of a smapi mod
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct SmapiMeta {
     id: Vec<String>,
@@ -85,27 +102,27 @@ struct SmapiMain {
     url: String,
 }
 
-pub async fn get_compability(app: tauri::AppHandle, mods: Vec<ModInfo>) -> Option<Vec<ModInfo>> {
+/// Get the compatibility of a list of mods
+///
+/// * `mods` - The list of mods to check compatibility for
+///
+/// # Returns the same list of mods with the updated compatibility info
+pub async fn get_compability(mods: Vec<ModInfo>) -> Option<Vec<ModInfo>> {
     let url = Url::parse("https://smapi.io/api/v3.0/mods").unwrap();
 
-    let path = paths::get_game_path().join("StardewModdingAPI.dll").to_string_lossy().to_string();
-    let game_path = paths::get_game_path().join("Stardew Valley.exe").to_string_lossy().to_string();
-    let dll_path = path.as_str();
-
-    let mut api_version: Option<String> = None;
-    match get_version_info_from_dll(dll_path) {
-        Some(version) => api_version = Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
-        None => api_version = None,
-    }
-
+    // Get game and api version
     let mut game_version = "".to_string();
-    match get_version_info_from_dll(game_path.as_str()) {
-        Some(version) => game_version  = format!("{}.{}.{}", version.major, version.minor, version.patch),
-        None => println!("Failed to get version information"),
+    match version_extractor::get_version("Stardew Valley.exe") {
+        Some(version) => {
+            game_version = version;
+        }
+        None => {
+        }
     }
+    let api_version: Option<String> = version_extractor::get_version("StardewModdingAPI.dll");
 
+    // Collect mods to post by putting them into a vector of SmapiMod's
     let mut mods_post: Vec<SmapiMod> = vec![];
-
     for mod_info in mods.clone() {
         match mod_info.unique_id {
             Some(unique) => {
@@ -113,36 +130,22 @@ pub async fn get_compability(app: tauri::AppHandle, mods: Vec<ModInfo>) -> Optio
                     id: unique.clone(),
                     installed_version: mod_info.version,
                 };
-                println!("Some: {}", unique.clone());
                 mods_post.push(smapi_mod);
             }
             None => {
-                println!("None: {}", mod_info.name);
             }
         }
     }
 
-    let post_body_wrapper = SmapiPostWrapper {
-        mods: mods_post,
-        api_version,
-        game_version,
-        #[cfg(target_os = "windows")]
-        platform: "Windows".to_string(),
-        #[cfg(target_os = "linux")]
-        platform: "Linux".to_string(),
-        #[cfg(target_os = "macos")]
-        platform: "Mac".to_string(),
-        include_extend_metadata: true,
-    };
+    // Create the post body
+    let post_body_wrapper = SmapiPostWrapper::new(mods_post, api_version, game_version);
 
-    let body = serde_json::to_string(&post_body_wrapper).unwrap();
-
+    // Send the post request
     let client = reqwest::Client::new();
     let res = client
         .post(url)
-        .body(body)
+        .body(serde_json::to_string(&post_body_wrapper).unwrap())
         .header("Application-Name", "application/json")
-        .header("Application-Version", app.package_info().version.clone().to_string())
         .header("User-Agent", "Junimo")
         .header("Content-Type", "application/json")
         .header("accept", "application/json")
@@ -150,120 +153,71 @@ pub async fn get_compability(app: tauri::AppHandle, mods: Vec<ModInfo>) -> Optio
         .await
         .unwrap();
 
-    if res.status().is_success() {
-        match res.text().await {
-            Ok(text) => {
-                println!("{}", text.clone().as_str());
-                let result: Result<Vec<SmapiWrapper>, serde_json::Error> = serde_json::from_str(text.as_str());
-                match result {
-                    Ok(wrapper) => {
-                        let mut new_mods: Vec<ModInfo> = mods.clone();
+    return if res.status().is_success() {
+        process_post_response(res, mods).await
+    } else {
+        println!("Error: {:?}", res.status());
+        None
+    }
+}
 
-                        let hash_map: HashMap<_, _> = mods.clone().into_iter().enumerate()
-                            .map(|(index, modinfo)| (modinfo.unique_id, index))
-                            .collect();
+/// Process the response of the post request
+///
+/// * `res` - The response of the post request
+/// * `mods` - The list of mods to update
+///
+/// # Returns the list of mods with the updated compatibility info
+async fn process_post_response(res: Response, mods: Vec<ModInfo>) -> Option<Vec<ModInfo>> {
+    return match res.text().await {
+        Ok(text) => {
+            // Deserialize the response into a SmapiResult
+            let result: Result<Vec<SmapiWrapper>, serde_json::Error> = serde_json::from_str(text.as_str());
+            match result {
+                Ok(wrapper) => {
+                    let mut new_mods: Vec<ModInfo> = mods.clone();
 
-                        for mod_info in wrapper {
-                            if hash_map.contains_key(&Some(mod_info.id.clone())) {
-                                let get_index = hash_map.get(&Some(mod_info.id.clone())).unwrap();
-                                let mut copied_mod = mods[*get_index].clone();
+                    // Create a hashmap to get the index of a mod by its unique id
+                    let hash_map: HashMap<_, _> = mods.clone().into_iter().enumerate()
+                        .map(|(index, modinfo)| (modinfo.unique_id, index))
+                        .collect();
 
-                                if mods[*get_index].more_info.is_none() {
-                                    match mod_info.metadata.compability_status {
-                                        Some(status) => {
-                                            if status != "Ok" {
-                                                copied_mod.more_info = mod_info.metadata.compability_summary;
-                                                new_mods[*get_index] = copied_mod.clone();
-                                            }
+                    // Iterate over the wrapper and update the mods with the compatibility info
+                    for mod_info in wrapper {
+                        if hash_map.contains_key(&Some(mod_info.id.clone())) {
+                            let get_index = hash_map.get(&Some(mod_info.id.clone())).unwrap();
+                            let mut copied_mod = mods[*get_index].clone();
+
+                            match mod_info.metadata.compability_status {
+                                Some(status) => {
+                                    if status != "Ok" {
+                                        if &mod_info.metadata.compability_summary.clone().unwrap().contains(copied_mod.version.as_str()) == &false {
+                                            let more_info = format!("<span class=\"console-{}\">{}</span>", status.to_lowercase(), mod_info.metadata.compability_summary.unwrap().replace("<a", "<a target=\"_blank\""));
+                                            copied_mod.more_info = Some(more_info);
+                                            copied_mod.is_broken = Some(true);
+                                            new_mods[*get_index] = copied_mod.clone();
                                         }
-                                        None => {
+                                        else {
+                                            copied_mod.more_info = None;
+                                            copied_mod.is_broken = None;
                                             new_mods[*get_index] = copied_mod.clone();
                                         }
                                     }
                                 }
-                                new_mods[*get_index] = copied_mod;
+                                None => {
+                                    new_mods[*get_index] = copied_mod.clone();
+                                }
                             }
+                            new_mods[*get_index] = copied_mod;
                         }
+                    }
 
-                        return Some(new_mods);
-                    },
-                    Err(e) => return None,
-                }
-            }
-            Err(e) => {
-                return None
+                    Some(new_mods)
+                },
+                Err(e) => None,
             }
         }
-    }
-    else {
-        return None
-    }
-}
-
-#[derive(Debug)]
-struct Version {
-    major: u16,
-    minor: u16,
-    patch: u16,
-    build: u16,
-}
-
-#[repr(C)]
-struct VS_FIXEDFILEINFO {
-    dwSignature: DWORD,
-    dwStrucVersion: DWORD,
-    dwFileVersionMS: DWORD,
-    dwFileVersionLS: DWORD,
-    dwProductVersionMS: DWORD,
-    dwProductVersionLS: DWORD,
-    dwFileFlagsMask: DWORD,
-    dwFileFlags: DWORD,
-    dwFileOS: DWORD,
-    dwFileType: DWORD,
-    dwFileSubtype: DWORD,
-    dwFileDateMS: DWORD,
-    dwFileDateLS: DWORD,
-}
-
-fn get_version_info_from_dll(path: &str) -> Option<Version> {
-    // Convert path to a wide string
-    let wide_path: Vec<u16> = OsString::from(path).encode_wide().chain(std::iter::once(0)).collect();
-
-    // Get the size of the version info
-    let mut handle: DWORD = 0;
-    let size = unsafe { GetFileVersionInfoSizeW(wide_path.as_ptr(), &mut handle) };
-    if size == 0 {
-        return None;
-    }
-
-    // Read the version info into a buffer
-    let mut buffer: Vec<u8> = vec![0; size as usize];
-    let result = unsafe { GetFileVersionInfoW(wide_path.as_ptr(), handle as usize as DWORD, size, buffer.as_mut_ptr() as *mut _) };
-    if result == 0 {
-        return None;
-    }
-
-    // Extract the version information
-    let mut lp_buffer: LPVOID = std::ptr::null_mut();
-    let mut len: u32 = 0;
-    let sub_block = U16CString::from_str("\\").unwrap();
-    let result = unsafe { VerQueryValueW(buffer.as_ptr() as *const _, sub_block.as_ptr(), &mut lp_buffer, &mut len) };
-    if result == 0 {
-        return None;
-    }
-
-    // Safely dereference the pointer without moving the content
-    unsafe {
-        let version_info: &VS_FIXEDFILEINFO = &*(lp_buffer as *const VS_FIXEDFILEINFO);
-        if version_info.dwSignature != 0xfeef04bd {
-            return None;
+        Err(e) => {
+            None
         }
-
-        Some(Version {
-            major: (version_info.dwFileVersionMS >> 16) as u16,
-            minor: (version_info.dwFileVersionMS & 0xFFFF) as u16,
-            patch: (version_info.dwFileVersionLS >> 16) as u16,
-            build: (version_info.dwFileVersionLS & 0xFFFF) as u16,
-        })
     }
 }
