@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useContext, useEffect, useRef, useState} from "react";
 import DancingJunimo from "../assets/JunimoDance.gif";
 import { invoke } from "@tauri-apps/api/core";
 import "../App.css";
@@ -22,45 +22,30 @@ import UtilityBar from "@components/UtilityBar.tsx";
 import Help from "@components/menubar/Help.tsx";
 import File from "@components/menubar/File.tsx";
 import WindowActions from "@components/menubar/WindowActions.tsx";
+import {ModsContext, useModsState} from "@components/ModsProvider.tsx";
+import MiddleButtons from "@components/MiddleButtons.tsx";
+import {useTranslation} from "react-i18next";
 
 function Home() {
-    const [key, setKey] = useState(0);
-    const [selectedInstalled, setSelectedInstalled] = useState<number[]>([]);
-    const [selectedMods, setSelectedMods] = useState<number[]>([]);
-    const [profile, setProfile] = useState<Profile>();
-    const [modList, setModList] = useState<ModInfos[]>([]);
     const [downloadList, setDownloadList] = useState<Download[]>([]);
     const [playing, setPlaying] = useState(false);
-    const [bigConsole, setBigConsole] = useState(false);
-
     const [submenu, setSubmenu] = useState(false);
+    const { t } = useTranslation('home');
+
+    const { testF, reloadKey } = useModsState();
+    testF();
 
     window.addEventListener('contextmenu', function (e) {
         e.preventDefault();  // This will prevent the default context menu
     }, false);
 
-  async function remove() {
-    if (profile !== undefined) {
-        const mods = profile.mods.filter((x, i) => !selectedMods.includes(i));
-        await invoke('change_profile_mods', {name: profile.name, mods: mods});
-        setSelectedMods([]);
-        setKey(prevKey => prevKey + 1);
-    }
-  }
 
-async function add() {
-    if (profile !== undefined) {
-        const mods = profile.mods.concat(modList.filter((x, i) => selectedInstalled.includes(i)));
-        await invoke('change_profile_mods', {name: profile.name, mods: mods});
-        setSelectedInstalled([]);
-        setKey(prevKey => prevKey + 1);
-    }
-  }
-
-  function toggleConsole() {
-        if (!playing) {
-            setBigConsole(!bigConsole);
-        }
+  async function initApp() {
+      await invoke("init");
+      setTimeout(() => {
+          reloadKey[1](prevKey => prevKey + 1);
+          invoke("close_splashscreen");
+      }, 400);
   }
 
     useEffect(() => {
@@ -83,7 +68,7 @@ async function add() {
                 }
 
                 if (data.finished) {
-                    setKey(prevKey => prevKey + 1);
+                    reloadKey[1](prevKey => prevKey + 1);
                     return prevLines.map(x => x.name === data.name ? data : x);
                 }
 
@@ -92,16 +77,14 @@ async function add() {
         };
 
         const handleReload = (event: any) => {
-            setKey(prevKey => prevKey + 1);
+            reloadKey[1](prevKey => prevKey + 1);
         };
+
+        initApp();
 
         let unsubscribeEvent = listen('close', handleNewData);
         let unsubscribeDownloadEvent = listen('download', handleDownload);
         let unsubscribeReloadEvent = listen('reload', handleReload);
-
-        setTimeout(() => {
-            invoke("close_splashscreen");
-        }, 1600);
 
         return () => {
             unsubscribeEvent.then((unsub) => unsub());
@@ -118,7 +101,7 @@ async function add() {
                     <div className="flex">
                         <File />
                         <Tools />
-                        <Profiles setKey={setKey} />
+                        <Profiles setKey={reloadKey[1]} />
                         <Theme />
                         <Help />
                     </div>
@@ -133,47 +116,25 @@ async function add() {
                             "flex-grow flex items-center justify-center w-[50%] rounded transition duration-150 cursor-pointer",
                             !submenu ? "bg-background" : "hover:bg-muted"
                         )}>
-                            Installs
+                            {t("installs")}
                         </button>
                         <button onClick={() => setSubmenu(true)} className={clsx(
                             "flex-grow flex items-center justify-center w-[50%] rounded transition duration-150 cursor-pointer",
                             submenu ? "bg-background" : "hover:bg-muted"
                         )}>
-                            Downloads
+                            {t("downloads")}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-1 py-4 overflow-hidden" key={key}>
-                <Mods setKey={setKey} profile={profile} setProfile={setProfile} selected={selectedMods}
-                      setSelected={setSelectedMods} />
-                <div className="flex flex-col gap-2 h-full px-4 relative">
-                    <div className="flex flex-col gap-4 h-full items-center justify-center">
-                        <button onClick={add} className={clsx(
-                            "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
-                            selectedInstalled.length === 0 && "opacity-50 pointer-events-none"
-                        )}>
-                            <ArrowLeft/>
-                        </button>
-                        <button onClick={remove} className={clsx(
-                            "h-12 w-12 rounded-full transition duration-150 bg-muted hover:bg-muted-dark flex items-center justify-center",
-                            selectedMods.length === 0 && "opacity-50 pointer-events-none"
-                        )}>
-                            <ArrowRight/>
-                        </button>
-                    </div>
-                    {playing && (
-                        <div className="h-12 w-full absolute -bottom-4">
-                            <img src={DancingJunimo} alt="Dancing Junimo"/>
-                        </div>
-                    )}
-                </div>
+            <div className="flex flex-1 py-4 overflow-hidden" key={reloadKey[0]}>
+                <Mods />
+                <MiddleButtons playing={playing} />
                 {
                     !submenu ?
                         (
-                            <ModsInstalled setKey={setKey} modList={modList} setModList={setModList}
-                                           selected={selectedInstalled} setSelected={setSelectedInstalled}  />
+                            <ModsInstalled />
                         )
                             :
                         (
@@ -182,7 +143,7 @@ async function add() {
                 }
             </div>
 
-            <Console playing={playing} bigConsole={bigConsole}/>
+            <Console />
         </div>
     </div>
   );
