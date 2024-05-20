@@ -2,22 +2,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::fs;
-use std::fs::File;
+
+use tauri::{command, Manager};
+
+use crate::app::{config, import, mods, profiles, user};
+use crate::app::{api, export, game};
+use crate::app::api::downloader;
+use crate::app::app_state::AppState;
+use crate::app::utility::paths;
 
 mod app;
 mod testing;
-
-use crate::app::{config, import, mods, profiles, user};
-
-use crate::app::api::downloader;
-use crate::app::app_state::AppState;
-use crate::app::{api, console, export, game};
-use tauri::{command, Manager};
-use tauri::async_runtime::handle;
-use zip::ZipArchive;
-use crate::app::api::compatibility::get_compability;
-
-use crate::app::utility::paths;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[command]
@@ -27,6 +22,11 @@ async fn greet(app: tauri::AppHandle) -> String {
         "<span style='color: #8bc24a'><b>[Junimo]</b> Welcome to Junimo Version {}!</span>",
         version
     )
+}
+
+#[command]
+async fn init(app_handle: tauri::AppHandle) -> bool {
+    mods::compatibility_check(app_handle).await
 }
 
 #[command]
@@ -97,6 +97,7 @@ pub fn main() {
             });
         }))
         .invoke_handler(tauri::generate_handler![
+            init,
             greet,
             test,
             show_window,
