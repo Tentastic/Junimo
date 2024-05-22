@@ -4,6 +4,8 @@
 use std::fs;
 
 use tauri::{command, Manager};
+use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::tray::{ClickType, TrayIconBuilder};
 
 use crate::app::{config, import, mods, profiles, user};
 use crate::app::{api, export, game};
@@ -27,11 +29,6 @@ async fn greet(app: tauri::AppHandle) -> String {
 #[command]
 async fn init(app_handle: tauri::AppHandle) -> bool {
     mods::compatibility_check(app_handle).await
-}
-
-#[command]
-async fn test(handle: tauri::AppHandle)  {
-    //get_compability(handle).await;
 }
 
 #[command]
@@ -59,6 +56,17 @@ async fn close_splashscreen(window: tauri::Window, handle: tauri::AppHandle) {
         .expect("no window labeled 'main' found")
         .show()
         .unwrap();
+
+    handle
+        .get_webview_window("main")
+        .expect("no window labeled 'main' found")
+        .set_focus()
+        .unwrap();
+}
+
+#[command]
+async fn close(handle: tauri::AppHandle)  {
+    handle.exit(0);
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -72,13 +80,35 @@ pub fn main() {
     fs::create_dir_all(paths::mod_path()).unwrap();
     let (app_state, rx) = AppState::new();
 
-
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             let app_handle = app.app_handle();
             let _ = config::init_config(&app_handle, paths::appdata_path().as_path());
+
+            let toggle = MenuItemBuilder::with_id("close", "Close").build(app)?;
+            let menu = MenuBuilder::new(app).items(&[&toggle]).build()?;
+            let tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .on_menu_event(move |app, event| match event.id().as_ref() {
+                    "close" => {
+                        app.exit(0);
+                    }
+                    _ => (),
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if event.click_type == ClickType::Left {
+                        let app = tray.app_handle();
+                        if let Some(webview_window) = app.get_webview_window("main") {
+                            let _ = webview_window.show();
+                            let _ = webview_window.set_focus();
+                        }
+                    }
+                })
+                .icon(app.default_window_icon().cloned().unwrap())
+                .build(app)?;
+
 
             Ok(())
         })
@@ -96,12 +126,24 @@ pub fn main() {
                 .await;
             });
         }))
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                if window.label() == "main" {
+                    let config = config::get_config(paths::config_path());
+                    if config.keep_open.is_none() || config.keep_open.unwrap() {
+                        window.hide().unwrap();
+                        api.prevent_close();
+                    }
+                }
+            }
+            _ => {}
+        })
         .invoke_handler(tauri::generate_handler![
             init,
             greet,
-            test,
             show_window,
             close_splashscreen,
+            close,
             paths::config_path,
             paths::profile_path,
             game::start_game,
@@ -126,11 +168,9 @@ pub fn main() {
             profiles::modify_profile,
             profiles::change_profile_mods,
             export::open_export,
-            export::close_export,
             export::select_export_dir,
             export::export_profile,
             import::open_import,
-            import::close_import,
             import::select_import_dir,
             import::import_profile,
             downloader::stop_download,
