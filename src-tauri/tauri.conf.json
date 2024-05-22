@@ -44,7 +44,8 @@
         "url": "splashscreen",
         "label": "splashscreen",
         "center": true,
-        "transparent": true
+        "transparent": true,
+        "resizable": false
       }
     ]
   }
