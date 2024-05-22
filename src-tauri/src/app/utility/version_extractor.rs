@@ -153,8 +153,8 @@ fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, String> {
 
 
     let fixed = version_info.fixed();
-    if fixed.is_err() {
-        return Err(fixed.err().unwrap().to_string());
+    if fixed.is_none() {
+        return Ok(None);
     }
     let fixed = fixed.unwrap();
 
