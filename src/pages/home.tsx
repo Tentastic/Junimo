@@ -30,10 +30,9 @@ function Home() {
     const [downloadList, setDownloadList] = useState<Download[]>([]);
     const [playing, setPlaying] = useState(false);
     const [submenu, setSubmenu] = useState(false);
-    const { t } = useTranslation('home');
+    const { t, i18n } = useTranslation('home');
 
-    const { testF, reloadKey } = useModsState();
-    testF();
+    const { reloadKey } = useModsState();
 
     window.addEventListener('contextmenu', function (e) {
         e.preventDefault();  // This will prevent the default context menu
@@ -78,6 +77,7 @@ function Home() {
 
         const handleReload = (event: any) => {
             reloadKey[1](prevKey => prevKey + 1);
+            console.log(i18n.language)
         };
 
         initApp();
@@ -85,11 +85,17 @@ function Home() {
         let unsubscribeEvent = listen('close', handleNewData);
         let unsubscribeDownloadEvent = listen('download', handleDownload);
         let unsubscribeReloadEvent = listen('reload', handleReload);
+        let unsubscribeLanguageEvent = listen('language_changed', async (event) => {
+            const lang = event.payload as string;
+            console.log(lang);
+            await i18n.changeLanguage(lang);
+        });
 
         return () => {
             unsubscribeEvent.then((unsub) => unsub());
             unsubscribeDownloadEvent.then((unsub) => unsub());
             unsubscribeReloadEvent.then((unsub) => unsub());
+            unsubscribeLanguageEvent.then((unsub) => unsub());
         };
     }, []);
 
