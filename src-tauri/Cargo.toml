@@ -1,6 +1,6 @@
 [package]
 name = "junimo"
-version = "0.8.3"
+version = "0.8.4"
 description = "Junimo"
 authors = ["Tentastic"]
 edition = "2021"
