@@ -25,4 +25,5 @@ export interface ModInfos {
     available: boolean,
     invisible: boolean,
     more_info: string | undefined,
+    group: string | undefined,
 }

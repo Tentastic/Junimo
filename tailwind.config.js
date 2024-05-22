@@ -40,6 +40,11 @@ module.exports = {
           dark: "var(--muted-dark)",
           foreground: "var(--muted-foreground)",
         },
+        groups: {
+          DEFAULT: "var(--group)",
+          dark: "var(--group-dark)",
+          foreground: "var(--group-foreground)",
+        },
         accent: {
           DEFAULT: "var(--accent)",
           foreground: "var(--accent-foreground)",

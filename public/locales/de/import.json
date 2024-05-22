@@ -1,0 +1,7 @@
+{
+  "importTitle": "Importieren",
+  "zipInputLabel": "Pfad zur .zip Datei",
+  "zipInputPlaceholder": "Bitte gebe den Pfad zur Zip Datei an...",
+  "allProfilesLabel": "Importiere eine \"Alle profile\" Zip Datei",
+  "allProfilesWarning": "Warnung: Das Importieren einer \"Alle profile\" Zip Datei wird alle Profile löschen und durch die importierten Profile ersetzen."
+}

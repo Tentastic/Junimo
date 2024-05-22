@@ -1,0 +1,7 @@
+{
+  "importTitle": "Import",
+  "zipInputLabel": "Path to .zip File",
+  "zipInputPlaceholder": "Please enter your zip path...",
+  "allProfilesLabel": "Import an \"All profiles\" zip file",
+  "allProfilesWarning": "Warning: This will overwrite all your current installed mods and profiles."
+}

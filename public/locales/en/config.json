@@ -1,0 +1,28 @@
+{
+  "generalLabel": "General",
+  "generalTitle": "General Settings",
+  "gamePath": "Game Path",
+  "language": "Language",
+  "keepOpen": "Keep Junimo open",
+  "keepOpenDesc": "Junimo will minimize into the system tray instead of closing when you click the close button in the main window.",
+
+  "checkLabel": "Checks",
+  "checksTitle": "Check Settings",
+  "activeRequirement": "Activate requirement checks",
+  "blockRequirement": "Block on missing requirements",
+  "activeBroken": "Activate broken checks",
+  "blockBroken": "Block on broken checks",
+  "activeRequirementDesc": "Junimo will check for missing mod requirements on game start",
+  "blockRequirementDesc": "Block Junimo from starting the game if any requirements are missing",
+  "activeBrokenDesc": "Junimo will check for broken mods on game start",
+  "blockBrokenDesc": "Block Junimo from starting the game if any mods are broken",
+
+
+  "nexusModsTitle": "NexusMods Settings",
+  "loggedIn": "Logged in as",
+  "doLogin": "Login via",
+  "handleMessage": "Let Junimo handle the",
+  "buttonMessage": "button",
+
+  "saveLabel": "Save"
+}

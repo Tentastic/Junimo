@@ -17,7 +17,7 @@
     ]
   },
   "productName": "junimo",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "identifier": "Junimo",
   "plugins": {},
   "app": {
@@ -44,7 +44,8 @@
         "url": "splashscreen",
         "label": "splashscreen",
         "center": true,
-        "transparent": true
+        "transparent": true,
+        "resizable": false
       }
     ]
   }

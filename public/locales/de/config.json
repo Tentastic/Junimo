@@ -1,0 +1,28 @@
+{
+  "generalLabel": "Allgemeines",
+  "generalTitle": "Allgemeine Einstellungen",
+  "gamePath": "Pfad zum Spiel",
+  "language": "Sprache",
+  "keepOpen": "Halte Junimo geöffnet",
+  "keepOpenDesc": "Junimo wird in den Hintergrund minimiert, anstatt sich zu schließen, falls das Hauptfenster geschlossen wurde.",
+
+  "checkLabel": "Überprüfungen",
+  "checksTitle": "Überprüfungs Einstellungen",
+  "activeRequirement": "Aktiviere anforderungs Überprüfungen",
+  "blockRequirement": "Blockiere bei fehlenden Anforderungen",
+  "activeBroken": "Aktiviere kaputte Mod Überprüfungen",
+  "blockBroken": "Blockiere bei kaputten Mods",
+  "activeRequirementDesc": "Junimo wird überprüfen, ob alle Anforderungen erfüllt sind, bevor das Spiel gestartet wird",
+  "blockRequirementDesc": "Blockiere Junimo vom Starten des Spiels, wenn Anforderungen fehlen",
+  "activeBrokenDesc": "Junimo wird überprüfen, ob alle Mods korrekt geladen wurden, bevor das Spiel gestartet wird",
+  "blockBrokenDesc": "Blockiere Junimo vom Starten des Spiels, wenn Mods kaputt sind",
+
+
+  "nexusModsTitle": "NexusMods Einstellungen",
+  "loggedIn": "Eingeloggt als",
+  "doLogin": "Login via",
+  "handleMessage": "Lass Junimo den Download über ",
+  "buttonMessage": "handhaben",
+
+  "saveLabel": "Speichern"
+}

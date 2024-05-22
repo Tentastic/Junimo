@@ -5,22 +5,20 @@ import {
     MenubarShortcut,
     MenubarTrigger
 } from "@components/ui/menubar.tsx";
+import {useTranslation} from "react-i18next";
 
 
 export default function Help() {
+    const { t } = useTranslation('home');
 
     return (
         <MenubarMenu>
-            <MenubarTrigger>Help</MenubarTrigger>
+            <MenubarTrigger>{t("help")}</MenubarTrigger>
             <MenubarContent>
-                <MenubarItem>
-                    New Tab <MenubarShortcut>⌘T</MenubarShortcut>
-                </MenubarItem>
-                <MenubarItem>New Window</MenubarItem>
+                <MenubarItem>Open Help</MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem>Share</MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem>Print</MenubarItem>
+                <MenubarItem>Check for Update</MenubarItem>
+                <MenubarItem>Check for Smapi Update</MenubarItem>
             </MenubarContent>
         </MenubarMenu>
     )

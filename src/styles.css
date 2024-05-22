@@ -22,6 +22,10 @@
     --muted: #dfe0e3;
     --muted-dark: #a7a7af;
 
+    --group: #cacdcf;
+    --group-dark: #a4a5a6;
+    --group-foreground: #a1a1aa;
+
     --accent: #f4f4f5;
     --accent-foreground: #18181b;
 
@@ -59,6 +63,10 @@
     --muted-dark: #18181c;
     --muted-foreground: #a1a1aa;
 
+    --group: #141419;
+    --group-dark: #0d0d10;
+    --group-foreground: #a1a1aa;
+
     --accent: #27272a;
     --accent-foreground: #fafafa;
 
@@ -93,6 +101,10 @@
     --muted: #141419;
     --muted-dark: #0b0b0c;
     --muted-foreground: #a1a1aa;
+
+    --group: #202027;
+    --group-dark: #17171c;
+    --group-foreground: #a1a1aa;
 
     --accent: #27272a;
     --accent-foreground: #fafafa;
@@ -145,8 +157,24 @@
   color: #f44336;
 }
 
+.console-broken {
+  color: #cf4f0d;
+}
+
+.console-abandoned {
+  color: #bc2017;
+}
+
+.console-workaround {
+  color: #d6c725;
+}
+
+.console-unofficial {
+  color: #d6c725;
+}
+
 .console-yellow {
-  color: #ffeb3b;
+  color: #d6c425;
 }
 
 .console-blue {
@@ -155,6 +183,10 @@
 
 .console-gray {
   color: #828282;
+}
+
+a {
+  text-decoration: underline;
 }
 
 ::-webkit-scrollbar {

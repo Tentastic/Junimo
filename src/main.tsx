@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import ReactDOM from "react-dom/client";
 import Home from "./pages/home";
 import Test from "./pages/test";
@@ -9,6 +9,9 @@ import Profiles from "./pages/profiles.tsx";
 import Exporter from "./pages/exporter.tsx";
 import Splashscreen from "./pages/splashscreen.tsx";
 import Importer from "./pages/importer.tsx";
+import ModsProvider from "@components/ModsProvider.tsx";
+import './i18n';
+
 
 document.addEventListener('DOMContentLoaded', function () {
     const currentTheme = localStorage.getItem('theme');
@@ -31,16 +34,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-      <BrowserRouter>
-          <Routes>
-              <Route index element={<Home />} />
-              <Route path="splashscreen" element={<Splashscreen />} />
-              <Route path="test" element={<Test />} />
-              <Route path="config" element={<Config />} />
-              <Route path="profiles" element={<Profiles />} />
-              <Route path="exporter" element={<Exporter />} />
-              <Route path="importer" element={<Importer />} />
-          </Routes>
-      </BrowserRouter>
+      <ModsProvider>
+          <BrowserRouter>
+              <Routes>
+                  <Route index element={<Home />} />
+                  <Route path="splashscreen" element={<Splashscreen />} />
+                  <Route path="test" element={<Test />} />
+                  <Route path="config" element={<Config />} />
+                  <Route path="profiles" element={<Profiles />} />
+                  <Route path="exporter" element={<Exporter />} />
+                  <Route path="importer" element={<Importer />} />
+              </Routes>
+          </BrowserRouter>
+      </ModsProvider>
   </React.StrictMode>,
 );
