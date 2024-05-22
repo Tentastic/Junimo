@@ -10,6 +10,10 @@ import {Switch} from "@components/ui/switch.tsx";
 import { open } from '@tauri-apps/plugin-dialog';
 import GeneralConfig from "@components/config/GeneralConfig.tsx";
 import CheckConfig from "@components/config/CheckConfig.tsx";
+import {useModsState} from "@components/ModsProvider.tsx";
+import NexusConfig from "@components/config/NexusConfig.tsx";
+import {clsx} from "clsx";
+import {useTranslation} from "react-i18next";
 
 function PageLoad({page}: {page: number}) {
     switch (page) {
@@ -21,6 +25,10 @@ function PageLoad({page}: {page: number}) {
             return (
                 <CheckConfig />
             );
+        case 2:
+            return (
+              <NexusConfig />
+            );
         default:
             return (
                 <GeneralConfig />
@@ -30,13 +38,14 @@ function PageLoad({page}: {page: number}) {
 
 export default function Config() {
     const [page, setPage] = useState(0);
+    const { t } = useTranslation("config");
 
     return (
         <div className="w-full h-[100vh] p-6 pl-6 pt-4 flex flex-col justify-start items-start">
             <div className="flex gap-2 mb-4">
-                <div className="p-1 px-3 rounded bg-muted cursor-pointer" onClick={x => setPage(0)}>General</div>
-                <div className="p-1 px-3 rounded bg-muted cursor-pointer" onClick={x => setPage(1)}>Checks</div>
-                <div className="p-1 px-3 rounded bg-muted cursor-pointer" onClick={x => setPage(2)}>NexusMods</div>
+                <div className={clsx("p-1 px-3 rounded bg-muted cursor-pointer", page == 0 && "bg-primary text-black")} onClick={x => setPage(0)}>{t("generalLabel")}</div>
+                <div className={clsx("p-1 px-3 rounded bg-muted cursor-pointer", page == 1 && "bg-primary text-black")} onClick={x => setPage(1)}>{t("checkLabel")}</div>
+                <div className={clsx("p-1 px-3 rounded bg-muted cursor-pointer", page == 2 && "bg-primary text-black")} onClick={x => setPage(2)}>NexusMods</div>
             </div>
             <PageLoad page={page}/>
         </div>
