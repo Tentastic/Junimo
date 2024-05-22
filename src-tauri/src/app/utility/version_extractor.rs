@@ -111,7 +111,7 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
 pub fn get_version(dll: &str) -> Option<String> {
     let path = paths::get_game_path().join(dll).to_string_lossy().to_string();
     return match get_version_info_from_dll(path.as_str()) {
-        Ok(Some(version)) => {
+        Ok(version) => {
             match version {
                 Some(version) => Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
                 None => None,
@@ -123,11 +123,19 @@ pub fn get_version(dll: &str) -> Option<String> {
 
 #[cfg(target_family = "unix")]
 /// Extracts the version of our games and smapis dll
-fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, std::io::Error> {
+fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, String> {
     // Load the DLL file
-    let mut file = File::open("path/to/your/file.dll")?;
+    let file = File::open(path);
+    if file.is_err() {
+        return Err(file.err().unwrap().to_string());
+    }
+    let mut file = file.unwrap();
+
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
+    let _result = file.read_to_end(&mut buffer);
+    if _result.is_err() {
+        return Err(_result.err().unwrap().to_string());
+    }
 
     // Parse the PE file
     let pe = PeFile::from_bytes(&buffer).expect("Failed to parse PE file");
@@ -135,8 +143,21 @@ fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, std::io::Err
     // Access the resources section
     let resources = pe.resources().expect("Failed to get resources");
 
-    let version_info = resources.version_info()?;
-    let fixed = version_info.fixed()?;
+
+
+    let version_info = resources.version_info();
+    if version_info.is_err() {
+        return Err(version_info.err().unwrap().to_string());
+    }
+    let version_info = version_info.unwrap();
+
+
+    let fixed = version_info.fixed();
+    if fixed.is_err() {
+        return Err(fixed.err().unwrap().to_string());
+    }
+    let fixed = fixed.unwrap();
+
     let version = Version {
         major: fixed.dwFileVersion.Major,
         minor: fixed.dwFileVersion.Minor,
