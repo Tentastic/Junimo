@@ -10,9 +10,9 @@ use std::os::windows::ffi::OsStrExt;
 use winapi::um::winver::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
 use crate::app::utility::{paths, version_extractor};
 
-#[cfg(!target_os = "windows")]
+#[cfg(target_family = "unix")]
 use pelite::pe64::{Pe, PeFile};
-#[cfg(!target_os = "windows")]
+#[cfg(target_family = "unix")]
 use pelite::resources::{FindError, Resources};
 
 /// Struct that forms a dll version
@@ -102,7 +102,7 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
     }
 }
 
-#[cfg(!target_os = "windows")]
+#[cfg(target_family = "unix")]
 /// Extracts the version of a dll file in the game directory
 ///
 /// * `dll` - The name of the dll file
@@ -121,7 +121,7 @@ pub fn get_version(dll: &str) -> Option<String> {
     }
 }
 
-#[cfg(!target_os = "windows")]
+#[cfg(target_family = "unix")]
 /// Extracts the version of our games and smapis dll
 fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, std::io::Error> {
     // Load the DLL file

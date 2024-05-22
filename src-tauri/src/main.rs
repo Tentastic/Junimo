@@ -14,7 +14,6 @@ use crate::app::app_state::AppState;
 use crate::app::utility::paths;
 
 mod app;
-mod testing;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[command]
