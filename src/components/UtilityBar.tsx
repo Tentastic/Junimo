@@ -3,9 +3,11 @@ import {Globe, Pause, Play, CopyPlus} from "lucide-react";
 import {invoke} from "@tauri-apps/api/core";
 import {Dispatch, SetStateAction} from "react";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@components/ui/tooltip.tsx";
-
+import {useTranslation} from "react-i18next";
 
 export default function UtilityBar({playing, setPlaying}: {playing: boolean, setPlaying: Dispatch<SetStateAction<boolean>>}) {
+    const { t } = useTranslation('home');
+
     async function start() {
         setPlaying(true);
         await invoke('start_game');
@@ -38,7 +40,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                                 <Globe size={24}/>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Open NexusMods</p>
+                                <p>{t("openNexusmod")}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -50,7 +52,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                                 <CopyPlus size={24}/>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Add Mod</p>
+                                <p>{t("addMod")}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -63,7 +65,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                                         <Pause size={24}/>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Stop Game</p>
+                                        <p>{t("stop")}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -75,7 +77,7 @@ export default function UtilityBar({playing, setPlaying}: {playing: boolean, set
                                         <Play size={24}/>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Start Game</p>
+                                        <p>{t("start")}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
