@@ -10,9 +10,9 @@ use std::os::windows::ffi::OsStrExt;
 use winapi::um::winver::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
 use crate::app::utility::{paths, version_extractor};
 
-#[cfg(target_os = "unix")]
+#[cfg(!target_os = "windows")]
 use pelite::pe64::{Pe, PeFile};
-#[cfg(target_os = "unix")]
+#[cfg(!target_os = "windows")]
 use pelite::resources::{FindError, Resources};
 
 /// Struct that forms a dll version
@@ -111,14 +111,19 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
 pub fn get_version(dll: &str) -> Option<String> {
     let path = paths::get_game_path().join(dll).to_string_lossy().to_string();
     return match get_version_info_from_dll(path.as_str()) {
-        Some(version) => Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
-        None => None,
+        Ok(Some(version)) => {
+            match version {
+                Some(version) => Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
+                None => None,
+            }
+        },
+        _ => None,
     }
 }
 
 #[cfg(!target_os = "windows")]
 /// Extracts the version of our games and smapis dll
-fn get_version_info_from_dll(path: &str) -> Option<Version> {
+fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, std::io::Error> {
     // Load the DLL file
     let mut file = File::open("path/to/your/file.dll")?;
     let mut buffer = Vec::new();
@@ -139,5 +144,5 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
         build: fixed.dwFileVersion.Build
     };
 
-    Some(version)
+    Ok(Some(version))
 }

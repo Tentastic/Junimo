@@ -45,7 +45,10 @@ tauri-plugin-fs = "2.0.0-beta.7"
 tauri-plugin-dialog = "2.0.0-beta.7"
 widestring = "1.1.0"
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(macos)'.dependencies]
+pelite = "0.10.0"
+
+[target.'cfg(linux)'.dependencies]
 pelite = "0.10.0"
 
 [target.'cfg(windows)'.dependencies]
