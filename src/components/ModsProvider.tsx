@@ -6,13 +6,13 @@ import {invoke} from "@tauri-apps/api/core";
 
 // Define the type for the context value
 interface ModsContextType {
+    appKey: [number, React.Dispatch<React.SetStateAction<number>>];
     reloadKey: [number, React.Dispatch<React.SetStateAction<number>>];
     profile: [Profile | undefined, React.Dispatch<React.SetStateAction<Profile | undefined>>];
     activatedMods: [Map<string, ModInfos[]>, React.Dispatch<React.SetStateAction<Map<string, ModInfos[]>>>];
     installedMods: [ModInfos[], React.Dispatch<React.SetStateAction<ModInfos[]>>];
     selectedAdd: [string[], React.Dispatch<React.SetStateAction<string[]>>];
     selectedRemove: [string[], React.Dispatch<React.SetStateAction<string[]>>];
-    testF: () => void;
     addMods: () => void;
     removeMods: () => void;
 }
@@ -28,16 +28,13 @@ export const useModsState = () => {
 };
 
 const ModsProvider = ({ children }: { children: React.ReactNode }) => {
+    const [appKey, setAppKey] = useState(0);
     const [key, setKey] = useState(0);
     const [profile, setProfile] = useState<Profile>();
     const [activatedMods, setActivatedMods] = useState<Map<string, ModInfos[]>>(new Map());
     const [modList, setModList] = useState<ModInfos[]>([]);
     const [selectedAdd, setSelectedAdd] = useState<string[]>([]);
     const [selectedRemove, setSelectedRemove] = useState<string[]>([]);
-
-    function testfunc() {
-        console.log('test');
-    }
 
     async function add() {
         console.log("Add");
@@ -60,13 +57,10 @@ const ModsProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-
-
-
     return (
-        <ModsContext.Provider value={{ reloadKey: [key, setKey], profile: [profile, setProfile], activatedMods: [activatedMods, setActivatedMods],
+        <ModsContext.Provider value={{ appKey: [appKey, setAppKey], reloadKey: [key, setKey], profile: [profile, setProfile], activatedMods: [activatedMods, setActivatedMods],
             installedMods: [modList, setModList], selectedAdd: [selectedAdd, setSelectedAdd], selectedRemove: [selectedRemove, setSelectedRemove],
-            testF: testfunc, addMods: add, removeMods: remove }}>
+            addMods: add, removeMods: remove }}>
             {children}
         </ModsContext.Provider>
     );
