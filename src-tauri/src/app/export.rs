@@ -16,11 +16,20 @@ use crate::app::mods::ModInfo;
 
 #[command]
 pub async fn open_export<R: Runtime>(handle: tauri::AppHandle<R>) {
+    #[cfg(target_os = "windows")]
     tauri::WebviewWindowBuilder::new(&handle, "Exporter", WebviewUrl::App("/exporter".into()))
         .title("Export")
         .min_inner_size(600.0, 350.0)
         .inner_size(600.0, 350.0)
         .transparent(true)
+        .build()
+        .unwrap();
+
+    #[cfg(target_os = "unix")]
+    tauri::WebviewWindowBuilder::new(&handle, "Exporter", WebviewUrl::App("/exporter".into()))
+        .title("Export")
+        .min_inner_size(600.0, 350.0)
+        .inner_size(600.0, 350.0)
         .build()
         .unwrap();
 }

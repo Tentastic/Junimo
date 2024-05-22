@@ -1,11 +1,19 @@
 use std::ffi::OsString;
+use std::fs::File;
+use std::io::Read;
 use widestring::U16CString;
+#[cfg(target_os = "windows")]
 use winapi::shared::minwindef::{DWORD, LPVOID};
-use std::fs;
+#[cfg(target_os = "windows")]
 use std::os::windows::ffi::OsStrExt;
-use std::ptr::null_mut;
+#[cfg(target_os = "windows")]
 use winapi::um::winver::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
 use crate::app::utility::{paths, version_extractor};
+
+#[cfg(target_os = "unix")]
+use pelite::pe64::{Pe, PeFile};
+#[cfg(target_os = "unix")]
+use pelite::resources::{FindError, Resources};
 
 /// Struct that forms a dll version
 #[derive(Debug)]
@@ -16,6 +24,7 @@ struct Version {
     build: u16,
 }
 
+#[cfg(target_os = "windows")]
 /// Struct to extract the version information from a DLL
 #[repr(C)]
 struct VsFixedfileinfo {
@@ -34,6 +43,7 @@ struct VsFixedfileinfo {
     dw_file_date_ls: DWORD,
 }
 
+#[cfg(target_os = "windows")]
 /// Extracts the version of a dll file in the game directory
 ///
 /// * `dll` - The name of the dll file
@@ -47,6 +57,7 @@ pub fn get_version(dll: &str) -> Option<String> {
     }
 }
 
+#[cfg(target_os = "windows")]
 /// Extracts the version of our games and smapis dll
 fn get_version_info_from_dll(path: &str) -> Option<Version> {
     // Convert path to a wide string
@@ -89,4 +100,44 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
             build: (version_info.dw_file_version_ls & 0xFFFF) as u16,
         })
     }
+}
+
+#[cfg(!target_os = "windows")]
+/// Extracts the version of a dll file in the game directory
+///
+/// * `dll` - The name of the dll file
+///
+/// # Returns Version of the dll or none if the version could not be extracted
+pub fn get_version(dll: &str) -> Option<String> {
+    let path = paths::get_game_path().join(dll).to_string_lossy().to_string();
+    return match get_version_info_from_dll(path.as_str()) {
+        Some(version) => Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
+        None => None,
+    }
+}
+
+#[cfg(!target_os = "windows")]
+/// Extracts the version of our games and smapis dll
+fn get_version_info_from_dll(path: &str) -> Option<Version> {
+    // Load the DLL file
+    let mut file = File::open("path/to/your/file.dll")?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    // Parse the PE file
+    let pe = PeFile::from_bytes(&buffer).expect("Failed to parse PE file");
+
+    // Access the resources section
+    let resources = pe.resources().expect("Failed to get resources");
+
+    let version_info = resources.version_info()?;
+    let fixed = version_info.fixed()?;
+    let version = Version {
+        major: fixed.dwFileVersion.Major,
+        minor: fixed.dwFileVersion.Minor,
+        patch: fixed.dwFileVersion.Patch,
+        build: fixed.dwFileVersion.Build
+    };
+
+    Some(version)
 }

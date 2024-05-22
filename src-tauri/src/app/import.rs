@@ -15,11 +15,20 @@ use zip::ZipWriter;
 /// * `handle` - The app handle of the Tauri application
 #[command]
 pub async fn open_import(handle: tauri::AppHandle) {
+    #[cfg(target_os = "windows")]
     tauri::WebviewWindowBuilder::new(&handle, "Importer", WebviewUrl::App("/importer".into()))
         .title("Import")
         .min_inner_size(600.0, 350.0)
         .inner_size(600.0, 350.0)
         .transparent(true)
+        .build()
+        .unwrap();
+
+    #[cfg(target_os = "unix")]
+    tauri::WebviewWindowBuilder::new(&handle, "Importer", WebviewUrl::App("/importer".into()))
+        .title("Import")
+        .min_inner_size(600.0, 350.0)
+        .inner_size(600.0, 350.0)
         .build()
         .unwrap();
 }
