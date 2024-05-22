@@ -18,11 +18,24 @@ pub struct Profile {
 
 #[command]
 pub async fn open_profile<R: Runtime>(handle: tauri::AppHandle<R>) {
+    #[cfg(target_os = "windows")]
     tauri::WebviewWindowBuilder::new(
         &handle,
         "Profiles",
         WebviewUrl::App("/profiles".into())
-    ).title("Profiles").transparent(true).build().unwrap();
+    )
+        .title("Profiles")
+        .transparent(true)
+        .build().unwrap();
+
+    #[cfg(target_os = "unix")]
+    tauri::WebviewWindowBuilder::new(
+        &handle,
+        "Profiles",
+        WebviewUrl::App("/profiles".into())
+    )
+        .title("Profiles")
+        .build().unwrap();
 }
 
 #[command]

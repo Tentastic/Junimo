@@ -61,9 +61,16 @@ fn save_config(config: &Config, path: &PathBuf) {
 /// Open config window
 #[command]
 pub async fn open_config<R: Runtime>(handle: tauri::AppHandle<R>) {
+    #[cfg(target_os = "windows")]
     tauri::WebviewWindowBuilder::new(&handle, "Config", WebviewUrl::App("/config".into()))
         .title("Settings")
         .transparent(true)
+        .build()
+        .unwrap();
+    
+    #[cfg(target_os = "unix")]
+    tauri::WebviewWindowBuilder::new(&handle, "Config", WebviewUrl::App("/config".into()))
+        .title("Settings")
         .build()
         .unwrap();
 }
@@ -148,6 +155,11 @@ fn register_nxm() -> Result<(), String> {
         return Err("Failed to update desktop database".to_string());
     }
 
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn register_nxm() -> Result<(), String> {
     Ok(())
 }
 

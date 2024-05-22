@@ -62,7 +62,12 @@ pub fn unpack_zip<R: io::Read + io::Seek>(
         {
             use std::os::unix::fs::PermissionsExt;
             if let Some(mode) = file.unix_mode() {
-                std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode))?;
+                match std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode)) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(e.to_string());
+                    }
+                };
             }
         }
 
@@ -147,7 +152,7 @@ pub fn import_zip<R: io::Read + io::Seek>(
         {
             use std::os::unix::fs::PermissionsExt;
             if let Some(mode) = file.unix_mode() {
-                std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode))?;
+                std::fs::set_permissions(&destination, std::fs::Permissions::from_mode(mode))?;
             }
         }
     }
