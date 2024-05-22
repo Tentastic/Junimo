@@ -6,4 +6,6 @@ export interface Config {
     block_on_missing_requirements: boolean | null;
     activate_broken: boolean | null;
     block_on_broken: boolean | null;
+    lang: string | null;
+    keep_open: boolean | null;
 }

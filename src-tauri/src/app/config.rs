@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{command, Manager, Runtime, WebviewUrl, WebviewWindow, Window};
 
 use crate::app::app_state::AppState;
+use crate::app::utility::paths;
 use crate::testing::register_manager::{RealRegistryManager, RegistryManager};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -18,6 +19,8 @@ pub struct Config {
     pub block_on_missing_requirements: Option<bool>,
     pub activate_broken: Option<bool>,
     pub block_on_broken: Option<bool>,
+    pub lang: Option<String>,
+    pub keep_open: Option<bool>,
 }
 
 impl Config {
@@ -26,10 +29,12 @@ impl Config {
             init_app,
             game_path,
             handle_nxm,
-            activate_requirements: None,
-            block_on_missing_requirements: None,
-            activate_broken: None,
-            block_on_broken: None,
+            activate_requirements: Some(true),
+            block_on_missing_requirements: Some(true),
+            activate_broken: Some(true),
+            block_on_broken: Some(true),
+            lang: Some("en".to_string()),
+            keep_open: Some(true)
         }
     }
 }
@@ -60,7 +65,13 @@ pub async fn open_config<R: Runtime>(handle: tauri::AppHandle<R>) {
 }
 
 #[command]
-pub fn save_config_button<R: Runtime>(window: Window<R>, config: Config, path: PathBuf) {
+pub fn save_config_button<R: Runtime>(window: Window<R>, handle: tauri::AppHandle<R>, config: Config, path: PathBuf) {
+    let old_config = get_config(paths::config_path());
+
+    if &old_config.lang != &config.lang {
+        &handle.emit("language_changed", &config.lang).unwrap();
+    }
+
     save_config(&config, &path);
     if config.handle_nxm {
         let real_register = RealRegistryManager::new().unwrap();
