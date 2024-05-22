@@ -1,0 +1,30 @@
+{
+  "file": "File",
+  "tools": "Tools",
+  "profile": "Profile",
+  "theme": "Theme",
+  "help": "Help",
+  "import": "Import",
+  "export": "Export",
+  "settings": "Settings",
+  "editProfile": "Edit Profile",
+  "close": "Close",
+
+  "lightTheme": "Light",
+  "darkTheme": "Dark",
+  "blackTheme": "Black",
+
+  "search": "Search...",
+
+  "currentMods": "Current Mods",
+  "installedMods": "Installed Mods",
+  "unselect": "Unselect all",
+  "uninstall": "Uninstall",
+  "uninstallAll": "Uninstall all",
+  "start": "Start Game",
+  "stop": "Stop Game",
+  "openNexusmod": "Open Nexusmods",
+  "addMod": "Add Mod",
+  "installs": "Installs",
+  "downloads": "Downloads"
+}

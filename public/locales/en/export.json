@@ -1,0 +1,8 @@
+{
+  "exportTitle": "Export",
+  "selectProfileLabel": "Selected Profile",
+  "selectProfilePlaceholer": "Profile to export...",
+  "exportPathLabel": "Exportation Path",
+  "exportPathPlaceholder": "Please enter your export path...",
+  "exportAllProfiles": "All Profiles"
+}
