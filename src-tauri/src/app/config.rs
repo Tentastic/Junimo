@@ -1,14 +1,18 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use serde::{Deserialize, Serialize};
 use tauri::{command, Manager, Runtime, WebviewUrl, WebviewWindow, Window};
 
+#[cfg(target_os = "windows")]
+use winreg::enums::HKEY_CLASSES_ROOT;
+#[cfg(target_os = "windows")]
+use winreg::RegKey;
+
 use crate::app::app_state::AppState;
 use crate::app::utility::paths;
-use crate::testing::register_manager::{RealRegistryManager, RegistryManager};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -74,8 +78,7 @@ pub fn save_config_button<R: Runtime>(window: Window<R>, handle: tauri::AppHandl
 
     save_config(&config, &path);
     if config.handle_nxm {
-        let real_register = RealRegistryManager::new().unwrap();
-        let _nxm_result = register_nxm(&real_register);
+        let _nxm_result = register_nxm();
     }
     window.close().expect("Couldn't close window!");
 }
@@ -103,14 +106,48 @@ pub fn init_config<R: Runtime>(
     Ok(None)
 }
 
-fn register_nxm(registry: &dyn RegistryManager) -> Result<(), String> {
-    let nxm = registry.create_subkey("nxm").unwrap();
-    nxm.set_value("", "URL:NXM Protocol").unwrap();
-    nxm.set_value("URL Protocol", "").unwrap();
+#[cfg(target_os = "windows")]
+fn register_nxm() -> Result<(), String> {
+    let hklm = RegKey::predef(HKEY_CLASSES_ROOT);
+    let (nxm, _) = hklm.create_subkey("nxm").unwrap();
+    nxm.set_value("", &"URL:NXM Protocol").unwrap();
+    nxm.set_value("URL Protocol", &"").unwrap();
 
-    let command = nxm.create_subkey(r"shell\open\command").unwrap();
+    let (command, _) = nxm.create_subkey(r"shell\open\command").unwrap();
     let app_path = env::current_exe().unwrap().to_str().unwrap().to_owned() + " \"%1\"";
     command.set_value("", &app_path).unwrap();
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn register_nxm() -> Result<(), String> {
+    let home_dir = env::var("HOME").map_err(|_| "Failed to get HOME directory".to_string())?;
+    let local_applications_path = PathBuf::from(home_dir).join(".local/share/applications");
+
+    fs::create_dir_all(&local_applications_path).map_err(|e| e.to_string())?;
+
+    let desktop_entry_path = local_applications_path.join("nxm-handler.desktop");
+    let mut file = fs::File::create(&desktop_entry_path).map_err(|e| e.to_string())?;
+
+    let current_exe = env::current_exe().map_err(|e| e.to_string())?;
+    let exec_path = current_exe.to_str().ok_or("Executable path is invalid UTF-8")?;
+
+    let contents = format!(
+        "[Desktop Entry]\nName=NXM Handler\nExec={} \"%u\"\nType=Application\nNoDisplay=true\nMimeType=x-scheme-handler/nxm;\n",
+        exec_path
+    );
+    file.write_all(contents.as_bytes()).map_err(|e| e.to_string())?;
+
+    // Updating the MIME-type database
+    let output = std::process::Command::new("update-desktop-database")
+        .arg(local_applications_path)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err("Failed to update desktop database".to_string());
+    }
+
     Ok(())
 }
 
@@ -118,8 +155,6 @@ fn register_nxm(registry: &dyn RegistryManager) -> Result<(), String> {
 mod tests {
     use tauri::test::mock_builder;
     use tempfile::tempdir;
-
-    use crate::testing::register_manager::MockRegistryManager;
 
     use super::*;
 
@@ -275,12 +310,5 @@ mod tests {
             second_result.is_ok_and(|x| x == None),
             "Second init should not create window"
         );
-    }
-
-    #[test]
-    fn test_register_nxm() {
-        let mock_registry = MockRegistryManager;
-        let nxm_result = register_nxm(&mock_registry);
-        assert!(nxm_result.is_ok());
     }
 }
