@@ -1,9 +1,12 @@
 import {MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger} from "@components/ui/menubar.tsx";
 import {Settings} from "lucide-react";
 import {invoke} from "@tauri-apps/api/core";
+import {useTranslation} from "react-i18next";
 
 
 export default function Tools() {
+    const { t } = useTranslation('home');
+
     async function openConfig() {
         await invoke("open_config")
     }
@@ -18,13 +21,13 @@ export default function Tools() {
 
     return (
         <MenubarMenu>
-            <MenubarTrigger>Tools</MenubarTrigger>
+            <MenubarTrigger>{t("tools")}</MenubarTrigger>
             <MenubarContent>
-                <MenubarItem onClick={openImport}>Import</MenubarItem>
-                <MenubarItem onClick={openExport}>Export</MenubarItem>
+                <MenubarItem onClick={openImport}>{t("import")}</MenubarItem>
+                <MenubarItem onClick={openExport}>{t("export")}</MenubarItem>
                 <MenubarSeparator />
                 <MenubarItem onClick={openConfig}>
-                    <Settings size={16} className="mr-1" /> Settings
+                    <Settings size={16} className="mr-1" /> {t("settings")}
                 </MenubarItem>
             </MenubarContent>
         </MenubarMenu>

@@ -7,8 +7,10 @@ import {
 } from "@components/ui/menubar.tsx";
 import {invoke} from "@tauri-apps/api/core";
 import {CopyPlus, Globe} from "lucide-react";
+import {useTranslation} from "react-i18next";
 
 export default function File() {
+    const { t } = useTranslation('home');
 
     async function addMod() {
         await invoke("add_mod");
@@ -19,25 +21,29 @@ export default function File() {
     }
 
     async function test() {
-        await invoke('test');
+        await invoke('fix_mod_folder');
+    }
+
+    async function close() {
+        await invoke('close');
     }
 
     return (
         <MenubarMenu>
-            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarTrigger>{t("file")}</MenubarTrigger>
             <MenubarContent>
                 <MenubarItem onClick={addMod}>
                     <CopyPlus size={14} className="mr-2" />
-                    Add Mod
+                    {t("addMod")}
                 </MenubarItem>
                 <MenubarItem onClick={openNexus}>
                     <Globe size={14} className="mr-2" />
-                    Open NexusMod
+                    {t("openNexusmod")}
                 </MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem onClick={test}>Share</MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem>Print</MenubarItem>
+                <MenubarItem onClick={close}>
+                    {t("close")}
+                </MenubarItem>
             </MenubarContent>
         </MenubarMenu>
     )
