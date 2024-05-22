@@ -8,6 +8,7 @@ import {Folder} from "lucide-react";
 import {clsx} from "clsx";
 import JunimoDance from "../assets/JunimoDance.gif";
 import {open} from "@tauri-apps/plugin-dialog";
+import {useTranslation} from "react-i18next";
 
 export default function Exporter() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -15,6 +16,8 @@ export default function Exporter() {
     const [selectedProfile, setSelectedProfile] = useState<string>("");
     const [valid, setValid] = useState(false);
     const [exporting, setExporting] = useState(false);
+
+    const { t } = useTranslation('export');
 
     function newSelected(e: string) {
         setSelectedProfile(e);
@@ -49,10 +52,7 @@ export default function Exporter() {
         }
 
         setExporting(true);
-        const exported = await invoke<boolean>('export_profile', {name: selectedProfile, path: exportPath});
-        if (exported) {
-            await invoke<boolean>('close_export');
-        }
+        await invoke<boolean>('export_profile', {name: selectedProfile, path: exportPath});
     }
 
     async function loadProfile() {
@@ -67,15 +67,15 @@ export default function Exporter() {
 
     return (
         <div className="w-full h-[100vh] p-6 flex flex-col justify-start items-start">
-            <h1 className="text-3xl text-left font-bold mb-4 text-primary">Export</h1>
+            <h1 className="text-3xl text-left font-bold mb-4 text-primary">{t("exportTitle")}</h1>
             <div className="w-full">
-                <p className="ml-1 mb-1 text-lg text-muted-foreground">Selected Profile</p>
+                <p className="ml-1 mb-1 text-lg text-muted-foreground">{t("selectProfileLabel")}</p>
                 <Select onValueChange={e => newSelected(e)}>
                     <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Profile to export..."/>
+                        <SelectValue placeholder={t("selectProfilePlaceholer")} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="All Profiles">All Profiles</SelectItem>
+                        <SelectItem value="All Profiles">{t("exportAllProfiles")}</SelectItem>
                         {profiles.map((profile, index) => (
                             <SelectItem key={index} value={profile.name}>{profile.name}</SelectItem>
                         ))}
@@ -83,9 +83,9 @@ export default function Exporter() {
                 </Select>
             </div>
             <div className="flex flex-col mt-4 w-full">
-                <Label htmlFor="path" className="ml-1 mb-1 text-lg text-muted-foreground">Exportation Path</Label>
+                <Label htmlFor="path" className="ml-1 mb-1 text-lg text-muted-foreground">{t("exportPathLabel")}</Label>
                 <div className="flex gap-2">
-                    <Input id="path" placeholder="Please enter your game path..."
+                    <Input id="path" placeholder={t("exportPathPlaceholder")}
                            value={exportPath} onChange={x => setExportPath(x.target.value)}/>
                     <button onClick={fetchPath} className="w-10 h-10 flex items-center justify-center transition duration-150 border rounded-lg
                         bg-muted hover:bg-muted-dark">
@@ -100,7 +100,7 @@ export default function Exporter() {
                             !valid || exporting ? "opacity-50 cursor-not-allowed" : ""
                         )}>
                     {exporting && <img src={JunimoDance} alt="Junimo Dance" className="w-10 h-10 inline-block mr-2 absolute left-1/2 -translate-x-1/2 -top-7" /> }
-                    Export
+                    {t("exportTitle")}
                 </button>
             </div>
         </div>
