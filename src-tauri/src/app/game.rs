@@ -35,6 +35,7 @@ pub async fn start_game(app_handle: AppHandle, app_state: State<'_, AppState>) -
     match init_game(app_handle.clone(), app_state.stop_game.clone()).await {
         Ok(_) => {}
         Err(e) => {
+            app_handle.emit("close", true).unwrap();
             console::add_line(
                 &app_handle,
                 format!(
@@ -61,7 +62,7 @@ async fn init_game(
     let stop_game = original_stop_game.clone();
 
     // Spawn a new thread to initialize the game without blocking the main thread
-    tokio::spawn(async move {
+    let spawn_result = tokio::spawn(async move {
         let config = config::get_config(paths::config_path());
         let profile = profiles::get_current_profile(paths::profile_path()).await;
         let mods = profile.mods;
@@ -97,24 +98,33 @@ async fn init_game(
         let any_missing_mods = any_missing_dependencies(&mods);
         if any_missing_mods && (config.block_on_missing_requirements.is_none()
             || (config.block_on_missing_requirements.is_some() && config.block_on_missing_requirements.unwrap())) {
-            console::add_line(&app_handle, "<span style=\"color: #c22f2f\">[Junimo] Missing dependencies detected. Please check your mods.</span>".to_string());
-            app_handle.emit("close", true).unwrap();
-            return;
+            return Err("Missing requirements detected. Please check your mods.".to_string());
         }
 
         // Check if there are any broken mods
         let broken_mods = !mods.iter().filter(|mod_info| mod_info.is_broken.is_some()).collect::<Vec<_>>().is_empty();
         if broken_mods && (config.block_on_broken.is_none()
             || (config.block_on_broken.is_some() && config.block_on_broken.unwrap())) {
-            console::add_line(&app_handle, "<span style=\"color: #c22f2f\">[Junimo] Some of your currently installed mods are broken. Please remove or update them.</span>".to_string());
-            app_handle.emit("close", true).unwrap();
-            return;
+            return Err("Some of your currently installed mods are broken. Please remove or update them.".to_string());
         }
 
-        start_smapi(app_handle, &stop_game.clone());
+        let smapi_result = start_smapi(app_handle, &stop_game.clone());
+        return match smapi_result {
+            Ok(_) => {
+                Ok(())
+            }
+            Err(e) => {
+                Err(e)
+            }
+        }
     }).await.unwrap();
 
-    Ok(())
+    return match spawn_result {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            Err(e.to_string())
+        }
+    }
 }
 
 /// Checks if there are any missing dependencies
@@ -223,8 +233,11 @@ fn install_missing_mods(
     mods_to_add: Vec<&String>,
 ) {
     for dir in mods_to_add {
-        let dir_path = format!("{}/{}", mod_path, dir);
-        let new_path = format!("{}/{}", mod_path, dir.replace(".",""));
+        let dir_path = PathBuf::from(mod_path).join(dir);
+        let new_path = PathBuf::from(mod_path).join(dir.replace(".",""));
+        if new_path.exists() {
+            fs::remove_dir_all(&new_path).unwrap();
+        }
         match fs::rename(&dir_path, &new_path) {
             Ok(_) => {
                 console::add_line(
@@ -239,8 +252,9 @@ fn install_missing_mods(
                 console::add_line(
                     &app_handle,
                     format!(
-                        "<span style=\"color: #c22f2f\">[Junimo] Failed to install {}</span>",
-                        &dir.replace(".","")
+                        "<span style=\"color: #c22f2f\">[Junimo] Failed to install {} ({})</span>",
+                        &dir.replace(".",""),
+                        e.to_string()
                     ),
                 );
             }
@@ -252,18 +266,33 @@ fn install_missing_mods(
 ///
 /// * `app_handle` - The app handle
 /// * `app_state` - The app state
-fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) {
+fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) -> Result<(), String> {
     let stop_signal = app_state.clone();
 
     // Set the environment variable for the mods path
     let key = "SMAPI_MODS_PATH";
     env::set_var(key, paths::mod_path().display().to_string());
 
+    let game_path = paths::get_game_path();
+
+    if !game_path.exists() || game_path == paths::mod_path() {
+        return Err("Game path not found. Please check your settings.".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    if !game_path.clone().join("StardewModdingAPI.exe").exists() {
+        return Err("SMAPI was not found! Please install SMAPI before starting the game.".to_string());
+    }
+    #[cfg(not(target_os = "windows"))]
+    if !game_path.clone().join("StardewModdingAPI.dll").exists() {
+        return Err("SMAPI was not found! Please install SMAPI before starting the game.".to_string());
+    }
+
     // Get the path to the SMAPI executable. On Windows it is a .exe file, on other platforms it is a .dll file
     #[cfg(target_os = "windows")]
-    let game_path = paths::get_game_path().join("StardewModdingAPI.exe");
+    let game_path = game_path.join("StardewModdingAPI.exe");
     #[cfg(not(target_os = "windows"))]
-    let game_path = paths::get_game_path().join("StardewModdingAPI.dll");
+    let game_path = game_path.join("StardewModdingAPI.dll");
 
     // Open a new PTY
     let pty_system = native_pty_system();
@@ -299,6 +328,8 @@ fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) {
         // Sleep for 200ms to reduce CPU usage
         sleep(Duration::from_millis(200));
     });
+
+    Ok(())
 }
 
 /// Reads the console output and adds it to Junimo's console
