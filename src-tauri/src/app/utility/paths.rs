@@ -1,19 +1,29 @@
 use std::fs;
 use std::path::PathBuf;
 use tauri::command;
-use crate::app::config;
+use crate::app::{config, profiles};
 use crate::app::utility::paths;
 
 pub fn appdata_path() -> PathBuf {
-    let mut config_path = dirs::config_dir().unwrap();
-    config_path.push("Junimo");
-    config_path
+    let mut path = dirs::config_dir().unwrap();
+    path.push("Junimo");
+
+    if !path.exists() {
+        fs::create_dir_all(&path).unwrap();
+    }
+
+    path
 }
 
 pub fn mod_path() -> PathBuf {
     let mut mods_path = dirs::config_dir().unwrap();
     mods_path.push("Junimo");
     mods_path.push("mods");
+
+    if !mods_path.exists() {
+        fs::create_dir_all(&mods_path).unwrap();
+    }
+
     mods_path
 }
 
@@ -34,6 +44,9 @@ pub fn temp_path() -> PathBuf {
 pub fn get_game_path() -> PathBuf {
     let config = config::get_config(config_path());
     let game_path = config.game_path;
+    if game_path == "" {
+        return appdata_path();
+    }
     PathBuf::from(game_path)
 }
 
@@ -47,10 +60,15 @@ pub fn config_path() -> PathBuf {
 
 #[command]
 pub fn profile_path() -> PathBuf {
-    let mut mods_path = dirs::config_dir().unwrap();
-    mods_path.push("Junimo");
-    mods_path.push("profile.json");
-    mods_path
+    let mut path = dirs::config_dir().unwrap();
+    path.push("Junimo");
+    path.push("profile.json");
+
+    if !path.exists() {
+        profiles::save_profiles(&vec![], &path);
+    }
+
+    path
 }
 
 #[cfg(test)]
