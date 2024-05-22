@@ -1,7 +1,3 @@
-import {Label} from "@components/ui/label.tsx";
-import {Input} from "@components/ui/input.tsx";
-import {Folder} from "lucide-react";
-import ThemeSwitch from "@components/ThemeSwitch.tsx";
 import NexusMods from "@assets/NexusMods.png";
 import {Switch} from "@components/ui/switch.tsx";
 import {invoke} from "@tauri-apps/api/core";

@@ -4,12 +4,8 @@ import { Label } from "@components/ui/label"
 import { Folder } from 'lucide-react';
 import { Config as ConfigModel } from "@models/config";
 import {invoke} from "@tauri-apps/api/core";
-import {User} from "@models/user";
-import NexusMods from "@assets/NexusMods.png";
-import {Switch} from "@components/ui/switch.tsx";
 import { open } from '@tauri-apps/plugin-dialog';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@components/ui/select.tsx";
-import ThemeSwitch from "@components/ThemeSwitch.tsx";
 import {Checkbox} from "@components/ui/checkbox.tsx";
 import Save from "@components/ui/save.tsx";
 import {useTranslation} from "react-i18next";
