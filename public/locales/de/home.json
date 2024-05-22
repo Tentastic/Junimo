@@ -1,0 +1,30 @@
+{
+  "file": "Datei",
+  "tools": "Werkzeuge",
+  "profile": "Profile",
+  "theme": "Aussehen",
+  "help": "Hilfe",
+  "import": "Importieren",
+  "export": "Exportieren",
+  "settings": "Einstellungen",
+  "editProfile": "Profile bearbeiten",
+  "close": "Beenden",
+
+  "lightTheme": "Hell",
+  "darkTheme": "Dunkel",
+  "blackTheme": "Finsternis",
+
+  "search": "Suche...",
+
+  "currentMods": "Aktivierte Mods",
+  "installedMods": "Installierte Mods",
+  "unselect": "Unselect all",
+  "uninstall": "Deinstallieren",
+  "uninstallAll": "Alle deinstallieren",
+  "start": "Spiel starten",
+  "stop": "Spiel stoppen",
+  "openNexusmod": "Nexusmods öffnen",
+  "addMod": "Mod hinzufügen",
+  "installs": "Installierte",
+  "downloads": "Downloads"
+}
