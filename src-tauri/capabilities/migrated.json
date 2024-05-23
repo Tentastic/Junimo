@@ -7,7 +7,8 @@
     "Config",
     "Profiles",
     "Exporter",
-    "Importer"
+    "Importer",
+    "Updater"
   ],
   "permissions": [
     "path:default",
@@ -23,6 +24,8 @@
     "menu:default",
     "tray:default",
     "dialog:allow-open",
+    "updater:default",
+    "updater:allow-check",
     "fs:default",
     {
       "identifier": "fs:allow-read",
@@ -31,6 +34,7 @@
           "path": "$APPDATA/*"
         }
       ]
-    }
+    },
+    "process:default"
   ]
 }

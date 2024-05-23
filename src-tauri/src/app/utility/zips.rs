@@ -1,23 +1,23 @@
-use std::{fs, io};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 use tauri::{AppHandle, Manager};
 use walkdir::WalkDir;
-use zip::{ZipArchive, ZipWriter};
 use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter};
 
-use crate::app::{console, mod_installation, profiles};
 use crate::app::profiles::Profile;
 use crate::app::utility::paths;
+use crate::app::{console, mod_installation, profiles};
 
 /// Unpacks a new installed zip file
 pub fn unpack_zip<R: io::Read + io::Seek>(
     app_handle: &AppHandle,
     mut archive: ZipArchive<R>,
     destination: &Path,
-    max: usize
+    max: usize,
 ) -> Result<String, String> {
     let mut main_dir = "".to_string();
     let mut has_manifest = false;
@@ -71,15 +71,69 @@ pub fn unpack_zip<R: io::Read + io::Seek>(
             }
         }
 
-        console::modify_line(&app_handle, mod_installation::install_progress(&i, &max).to_string());
+        console::modify_line(
+            &app_handle,
+            mod_installation::install_progress(&i, &max).to_string(),
+        );
     }
 
     return if !has_manifest {
         Err("No manifest found".to_string())
-    }
-    else {
+    } else {
         Ok(main_dir)
+    };
+}
+
+/// Unpacks a new installed zip file
+pub fn unpack_smapi<R: io::Read + io::Seek>(
+    mut archive: ZipArchive<R>,
+    destination: &Path
+) -> Result<String, String> {
+    let mut main_dir = "".to_string();
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).unwrap();
+
+        if main_dir == "" {
+            let new_filepath = file.name().to_string().replace("\\", "/");
+            let split = new_filepath.split('/').collect::<Vec<&str>>();
+            main_dir = split[0].to_string();
+        }
+
+        let outpath = match file.enclosed_name() {
+            Some(path) => destination.join(path),
+            None => continue,
+        };
+
+        if file.name().ends_with('/') {
+            if !outpath.exists() {
+                fs::create_dir_all(&outpath).unwrap();
+            }
+        } else {
+            if let Some(parent) = outpath.parent() {
+                if !parent.exists() {
+                    fs::create_dir_all(parent).unwrap();
+                }
+            }
+            let mut outfile = File::create(&outpath).unwrap();
+            io::copy(&mut file, &mut outfile).unwrap();
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Some(mode) = file.unix_mode() {
+                match std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode)) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(e.to_string());
+                    }
+                };
+            }
+        }
     }
+
+    Ok(main_dir)
 }
 
 /// Writes mod files into a zip archive
@@ -100,8 +154,7 @@ pub fn zip_mods(zip: &mut ZipWriter<File>, src_dir: &PathBuf) -> zip::result::Zi
         let mut zip_path = PathBuf::from("mods"); // Start with the source directory name
         if !&src_dir_name.to_string().contains(".") {
             zip_path = zip_path.join(format!(".{}", &src_dir_name.to_string()));
-        }
-        else {
+        } else {
             zip_path = zip_path.join(&src_dir_name.to_string());
         }
         zip_path = zip_path.join(path.strip_prefix(src_dir).unwrap());
@@ -130,7 +183,7 @@ pub fn import_zip<R: io::Read + io::Seek>(
     mut archive: ZipArchive<R>,
     destination: &Path,
     temp_path: &Path,
-    all: bool
+    all: bool,
 ) -> zip::result::ZipResult<()> {
     // Go through all files in zip file
     for i in 0..archive.len() {
@@ -139,14 +192,12 @@ pub fn import_zip<R: io::Read + io::Seek>(
             Some(path) => {
                 if path.starts_with("mods") {
                     import_mod_file(destination, &path, &mut file, all)?;
-                }
-                else {
+                } else {
                     import_metadata_file(destination, temp_path, &path, &mut file, all)?;
                 }
             }
             None => continue,
         }
-
 
         #[cfg(unix)]
         {
@@ -167,25 +218,28 @@ pub fn import_zip<R: io::Read + io::Seek>(
 /// * `all` - Whether the import should overwrite all existing profiles
 ///
 /// # Returns a zip result
-fn import_mod_file(destination: &Path, path: &Path, file: &mut zip::read::ZipFile, all: bool) -> zip::result::ZipResult<()> {
+fn import_mod_file(
+    destination: &Path,
+    path: &Path,
+    file: &mut zip::read::ZipFile,
+    all: bool,
+) -> zip::result::ZipResult<()> {
     let mod_dest = destination.join(&path);
 
-    let dir_name =  path.iter().nth(1).unwrap();
+    let dir_name = path.iter().nth(1).unwrap();
     let path_in_mods = paths::mod_path().join(dir_name);
     let path_in_mods_dot = paths::mod_path().join(format!(".{:?}", dir_name));
 
     if (path_in_mods.exists() || path_in_mods_dot.exists()) && !all {
         return Ok(());
-    }
-    else if (path_in_mods.exists() || path_in_mods_dot.exists()) && all {
+    } else if (path_in_mods.exists() || path_in_mods_dot.exists()) && all {
         remove_if_exists(path_in_mods);
         remove_if_exists(path_in_mods_dot);
     }
 
     if file.is_dir() {
         fs::create_dir_all(mod_dest).unwrap();
-    }
-    else {
+    } else {
         if let Some(parent) = mod_dest.parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent)?;
@@ -205,8 +259,7 @@ fn remove_if_exists(path: PathBuf) {
     if path.exists() && path.is_dir() {
         if path.is_dir() {
             fs::remove_dir_all(&path).unwrap();
-        }
-        else {
+        } else {
             fs::remove_file(&path).unwrap();
         }
     }
@@ -221,7 +274,13 @@ fn remove_if_exists(path: PathBuf) {
 /// * `all` - Whether the import should overwrite all existing profiles
 ///
 /// # Returns a zip result
-fn import_metadata_file(destination: &Path, temp_path: &Path, path: &Path, file: &mut zip::read::ZipFile, all: bool) -> zip::result::ZipResult<()> {
+fn import_metadata_file(
+    destination: &Path,
+    temp_path: &Path,
+    path: &Path,
+    file: &mut zip::read::ZipFile,
+    all: bool,
+) -> zip::result::ZipResult<()> {
     let outpath = temp_path.join(path);
 
     if file.name().contains("json") {
@@ -238,16 +297,14 @@ fn import_metadata_file(destination: &Path, temp_path: &Path, path: &Path, file:
                 }
 
                 fs::rename(&outpath, &profile_dest).unwrap();
-            }
-            else if file.name().contains("mods.json") {
+            } else if file.name().contains("mods.json") {
                 if mods_dest.exists() {
                     fs::remove_file(&mods_dest).unwrap();
                 }
 
                 fs::rename(&outpath, &mods_dest).unwrap();
             }
-        }
-        else {
+        } else {
             let data_raw = fs::read_to_string(&outpath).unwrap();
             let data = data_raw.as_str();
             let loaded_profiles: Vec<Profile> = serde_json::from_str(data).unwrap();
@@ -259,7 +316,8 @@ fn import_metadata_file(destination: &Path, temp_path: &Path, path: &Path, file:
             let loaded_profile = loaded_profiles[0].clone();
             let current_profiles = profiles::get_profiles(paths::profile_path());
 
-            let mut current_profiles = current_profiles.into_iter()
+            let mut current_profiles = current_profiles
+                .into_iter()
                 .filter(|prof| prof.name != loaded_profile.name)
                 .collect::<Vec<Profile>>();
             current_profiles.push(loaded_profile);

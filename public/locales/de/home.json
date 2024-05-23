@@ -12,7 +12,11 @@
 
   "lightTheme": "Hell",
   "darkTheme": "Dunkel",
-  "blackTheme": "Finsternis",
+  "blackTheme": "Schwarz",
+
+  "helpOpen": "Hilfe öffnen",
+  "helpUpdater": "Nach Updates suchen",
+  "helpSmapi": "Nach SMAPI Updates suchen",
 
   "search": "Suche...",
 

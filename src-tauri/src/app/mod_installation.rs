@@ -1,15 +1,17 @@
-use crate::app::utility::{paths, zips};
-use crate::app::{config, console, mods};
-use futures_util::future::err;
 use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::{fs, io, thread};
 use std::io::Read;
+use std::path::{Path, PathBuf};
+use std::{fs, io};
+
 use tauri::{AppHandle, Manager};
 use walkdir::WalkDir;
 use zip::ZipArchive;
+
 use crate::app::api::compatibility;
-use crate::app::mods::{Dependency, get_all_mods, Manifest, ModInfo, save_mods};
+use crate::app::models::mod_info::ModInfo;
+use crate::app::mods::{get_all_mods, save_mods, Dependency, Manifest};
+use crate::app::utility::{paths, zips};
+use crate::app::{config, console};
 
 /// Start the installation of a mod
 ///
@@ -35,14 +37,25 @@ pub async fn start_installation(app_handle: AppHandle, path: &PathBuf) -> Result
             zip_file_path.file_name().unwrap().to_str().unwrap()
         );
 
-        if zip_file_path.clone().to_string_lossy().to_string().replace("\\", "/") != PathBuf::from(&to_path).to_string_lossy().to_string().replace("\\", "/") {
+        if zip_file_path
+            .clone()
+            .to_string_lossy()
+            .to_string()
+            .replace("\\", "/")
+            != PathBuf::from(&to_path)
+                .to_string_lossy()
+                .to_string()
+                .replace("\\", "/")
+        {
             fs::copy(&zip_file_path, &to_path).unwrap();
         }
         let copied_zip_file = File::open(&to_path).unwrap();
         let zip_archive = ZipArchive::new(copied_zip_file).unwrap();
 
         extract_mod(&cloned_handle, zip_archive, &output_folder_path).await;
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     Ok(())
 }
@@ -71,7 +84,10 @@ async fn extract_mod<R: io::Read + io::Seek>(
         Err(error) => {
             console::modify_line(
                 &app_handle,
-                format!("<span class=\"console-red\">[Junimo] Failed to install mod: {}</span>", error),
+                format!(
+                    "<span class=\"console-red\">[Junimo] Failed to install mod: {}</span>",
+                    error
+                ),
             );
             &app_handle.emit("reload", false).unwrap();
             return;
@@ -88,7 +104,12 @@ async fn extract_mod<R: io::Read + io::Seek>(
         if entry.file_name().to_string_lossy() == "manifest.json" {
             let replaced = entry.path().to_string_lossy().replace("\\", "/");
             let split = replaced.split('/').collect::<Vec<&str>>();
-            let temp_path_depth = paths::temp_path().to_string_lossy().replace("\\", "/").split("/").collect::<Vec<&str>>().len();
+            let temp_path_depth = paths::temp_path()
+                .to_string_lossy()
+                .replace("\\", "/")
+                .split("/")
+                .collect::<Vec<&str>>()
+                .len();
 
             // Calculate the depth of the current path
             let temp_depth = split.clone().len() - temp_path_depth.clone();
@@ -97,8 +118,7 @@ async fn extract_mod<R: io::Read + io::Seek>(
             // Else if the depth is higher than the current depth, set the depth to the current depth and remove group name.
             if &depth == &0 {
                 depth = temp_depth;
-            }
-            else if &depth > &temp_depth {
+            } else if &depth > &temp_depth {
                 depth = temp_depth;
                 group_name = None;
                 continue;
@@ -111,7 +131,6 @@ async fn extract_mod<R: io::Read + io::Seek>(
             continue;
         }
     }
-
 
     let mut directories: Vec<PathBuf> = Vec::new();
 
@@ -128,7 +147,10 @@ async fn extract_mod<R: io::Read + io::Seek>(
         Err(error) => {
             console::modify_line(
                 &app_handle,
-                format!("<span class=\"console-red\">[Junimo] Failed to install mod: {}</span>", error),
+                format!(
+                    "<span class=\"console-red\">[Junimo] Failed to install mod: {}</span>",
+                    error
+                ),
             );
             &app_handle.emit("reload", false).unwrap();
             return;
@@ -154,7 +176,7 @@ async fn install_mods(
     directories: &Vec<PathBuf>,
     outpath: &PathBuf,
     depth: &usize,
-    group_name: Option<String>
+    group_name: Option<String>,
 ) -> Result<(), String> {
     let mut manifest: Option<Manifest> = None;
 
@@ -172,7 +194,11 @@ async fn install_mods(
                         .contains("manifest.json")
                     {
                         manifest = Some(get_manifest(&entry.path()));
-                        new_dir_name = add_mod_through_manifest(manifest.clone().unwrap().clone(), group_name.clone()).await;
+                        new_dir_name = add_mod_through_manifest(
+                            manifest.clone().unwrap().clone(),
+                            group_name.clone(),
+                        )
+                        .await;
                     }
                 }
                 Err(_) => {
@@ -191,7 +217,6 @@ async fn install_mods(
         if rename_result.is_none() {
             return Err("Failed to rename directory".to_string());
         }
-
 
         let game_path = paths::mod_path().join(format!(".{}", &manifest.clone().unwrap().name));
 
@@ -327,8 +352,7 @@ async fn add_mod_through_manifest(manifest: Manifest, group_name: Option<String>
                 dependencies.push(dep);
             }
         }
-        None => {
-        }
+        None => {}
     }
 
     // Select the content pack from the manifest file
@@ -336,8 +360,7 @@ async fn add_mod_through_manifest(manifest: Manifest, group_name: Option<String>
         Some(content_pack) => {
             dependencies.push(content_pack);
         }
-        None => {
-        }
+        None => {}
     }
 
     // Create mod info for the mod
@@ -370,7 +393,7 @@ async fn add_mod_through_manifest(manifest: Manifest, group_name: Option<String>
         more_info: None,
         dependencies: Some(dependencies),
         group: group_name,
-        is_broken: None
+        is_broken: None,
     };
 
     // Check for compatibilities and update the mod info
@@ -380,8 +403,7 @@ async fn add_mod_through_manifest(manifest: Manifest, group_name: Option<String>
             Some(compatibility) => {
                 new_mod = compatibility[0].clone();
             }
-            None => {
-            }
+            None => {}
         }
     }
 

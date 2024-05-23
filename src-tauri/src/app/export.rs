@@ -1,18 +1,18 @@
 use std::error::Error;
-use crate::app::profiles::Profile;
-use crate::app::utility::{paths, zips};
-use crate::app::{console, mod_installation, mods, profiles};
-use rfd::FileDialog;
-use std::{fs, io, thread};
-use std::fmt::format;
 use std::fs::File;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use std::{fs, io, thread};
+
+use rfd::FileDialog;
 use tauri::{command, Manager, Runtime, WebviewUrl, Window};
-use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
-use crate::app::mods::ModInfo;
+
+use crate::app::models::mod_info::ModInfo;
+use crate::app::profiles::Profile;
+use crate::app::utility::{paths, zips};
+use crate::app::{console, mods, profiles};
 
 #[command]
 pub async fn open_export<R: Runtime>(handle: tauri::AppHandle<R>) {
@@ -46,7 +46,12 @@ pub fn select_export_dir() -> String {
 }
 
 #[command]
-pub fn export_profile<R: Runtime>(window: Window, handle: tauri::AppHandle<R>, name: String, path: String) -> bool {
+pub fn export_profile<R: Runtime>(
+    window: Window,
+    handle: tauri::AppHandle<R>,
+    name: String,
+    path: String,
+) -> bool {
     let handle_clone = handle.clone();
     let window_clone = window.clone();
     let name_clone = name.clone();
@@ -64,7 +69,12 @@ pub fn export_profile<R: Runtime>(window: Window, handle: tauri::AppHandle<R>, n
     true
 }
 
-fn export(zip_path: &PathBuf, mods: &Vec<ModInfo>, profile_path: &PathBuf, mod_path: Option<PathBuf>) -> Result<(), String> {
+fn export(
+    zip_path: &PathBuf,
+    mods: &Vec<ModInfo>,
+    profile_path: &PathBuf,
+    mod_path: Option<PathBuf>,
+) -> Result<(), String> {
     let zip_file = File::create(zip_path);
 
     if zip_file.is_err() {
@@ -90,23 +100,21 @@ fn export(zip_path: &PathBuf, mods: &Vec<ModInfo>, profile_path: &PathBuf, mod_p
     let to_mods_path = PathBuf::from("mods.json");
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
-    zip.start_file(to_profile_path.to_string_lossy(), options).unwrap();
+    zip.start_file(to_profile_path.to_string_lossy(), options)
+        .unwrap();
     let mut profile_file = File::open(profile_path).unwrap();
     io::copy(&mut profile_file, &mut zip).unwrap();
 
     if mod_path.is_some() {
-        zip.start_file(to_mods_path.to_string_lossy(), options).unwrap();
+        zip.start_file(to_mods_path.to_string_lossy(), options)
+            .unwrap();
         let mut mods_file = File::open(mod_path.unwrap()).unwrap();
         io::copy(&mut mods_file, &mut zip).unwrap();
     }
 
     return match zip.finish() {
-        Ok(_) => {
-            Ok(())
-        }
-        Err(e) => {
-            Err(e.to_string())
-        }
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string()),
     };
 }
 
@@ -161,11 +169,17 @@ fn export_all<R: Runtime>(handle: tauri::AppHandle<R>, path: String) {
     let profile_file = paths::appdata_path().join("profile.json");
     let mods_file = paths::appdata_path().join("mods.json");
 
-    match export(&export_path, &mods::get_all_mods(), &profile_file, Some(mods_file)) {
+    match export(
+        &export_path,
+        &mods::get_all_mods(),
+        &profile_file,
+        Some(mods_file),
+    ) {
         Ok(_) => {
             console::add_line(
                 &handle,
-                "<span class=\"console-green\">[Junimo] Exported all profiles and mods</span>".to_string(),
+                "<span class=\"console-green\">[Junimo] Exported all profiles and mods</span>"
+                    .to_string(),
             );
         }
         Err(e) => {
@@ -184,6 +198,7 @@ fn export_all<R: Runtime>(handle: tauri::AppHandle<R>, path: String) {
 mod tests {
     use tauri::test::mock_builder;
     use tempfile::tempdir;
+
     use crate::app::app_state::AppState;
 
     use super::*;
@@ -192,10 +207,7 @@ mod tests {
         let (app_state, rx) = AppState::new();
 
         builder
-            .invoke_handler(tauri::generate_handler![
-                open_export,
-                close_export
-            ])
+            .invoke_handler(tauri::generate_handler![open_export, close_export])
             .manage(app_state.clone())
             // remove the string argument to use your app's config file
             .build(tauri::generate_context!())

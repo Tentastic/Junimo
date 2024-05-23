@@ -1,63 +1,19 @@
 use std::collections::{HashMap, HashSet};
-use crate::app::utility::{browser, paths, zips};
-use crate::app::{config, console, mod_installation, mods, profiles};
-use rfd::FileDialog;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+
+use rfd::FileDialog;
+use serde::{Deserialize, Serialize};
 use tauri::{command, AppHandle, Manager};
-use walkdir::WalkDir;
-use zip::read::ZipArchive;
+
 use crate::app::api::compatibility;
+use crate::app::models::mod_info::ModInfo;
 use crate::app::profiles::Profile;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ModInfo {
-    pub name: String,
-    pub summary: Option<String>,
-    pub description: Option<String>,
-    pub picture_url: Option<String>,
-    pub mod_downloads: u64,
-    pub mod_unique_downloads: u64,
-    pub uid: u64,
-    pub mod_id: u32,
-    pub game_id: u32,
-    pub allow_rating: bool,
-    pub domain_name: String,
-    pub category_id: u32,
-    pub version: String,
-    pub endorsement_count: u32,
-    pub created_timestamp: u64,
-    pub created_time: String,
-    pub updated_timestamp: u64,
-    pub updated_time: String,
-    pub author: String,
-    pub uploaded_by: String,
-    pub uploaded_users_profile_url: String,
-    pub contains_adult_content: bool,
-    pub status: String,
-    pub available: bool,
-    pub unique_id: Option<String>,
-    pub more_info: Option<String>,
-    pub dependencies: Option<Vec<Dependency>>,
-    pub group: Option<String>,
-    pub is_broken: Option<bool>
-}
-
-impl PartialEq for ModInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
-}
-
-impl Hash for ModInfo {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state); // Only hash the name
-    }
-}
+use crate::app::utility::{browser, paths};
+use crate::app::{config, console, mod_installation, profiles};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Manifest {
@@ -103,7 +59,12 @@ impl Version {
     pub fn to_detailed(&self) -> String {
         match self {
             Version::Simple(s) => s.clone(),
-            Version::Detailed { major, minor, patch_version, build } => {
+            Version::Detailed {
+                major,
+                minor,
+                patch_version,
+                build,
+            } => {
                 format!("{}.{}.{}", major, minor, patch_version)
             }
         }
@@ -232,7 +193,10 @@ pub fn uninstall_mod(app_handle: AppHandle, name: &str) {
     // Add a success line to the console
     console::add_line(
         &app_handle,
-        format!("<span class=\"console-green\">[Junimo] Uninstalled: {}</span>", &name),
+        format!(
+            "<span class=\"console-green\">[Junimo] Uninstalled: {}</span>",
+            &name
+        ),
     );
 }
 
@@ -241,8 +205,7 @@ fn remove_mod_folder(app_handle: &AppHandle, mod_path: &PathBuf, name: &str) {
     if Path::new(&mod_path).exists() {
         let remove_result = fs::remove_dir_all(&mod_path);
         match remove_result {
-            Ok(_) => {
-            }
+            Ok(_) => {}
             Err(e) => {
                 console::add_line(
                     &app_handle,
@@ -262,9 +225,8 @@ pub async fn compatibility_check(app_handle: AppHandle) -> bool {
 
     if config.activate_broken.is_none() || config.activate_broken.unwrap() {
         mods_result = compatibility::get_compability(get_all_mods()).await;
-    }
-    else {
-    let mut mods = mods_result.clone().unwrap();
+    } else {
+        let mut mods = mods_result.clone().unwrap();
         for mod_info in mods.iter_mut() {
             mod_info.is_broken = None;
             mod_info.more_info = None;
@@ -277,7 +239,10 @@ pub async fn compatibility_check(app_handle: AppHandle) -> bool {
             Some(mods) => {
                 let profiles = profiles::get_profiles(paths::profile_path());
 
-                let hash_map: HashMap<_, _> = mods.clone().into_iter().enumerate()
+                let hash_map: HashMap<_, _> = mods
+                    .clone()
+                    .into_iter()
+                    .enumerate()
                     .map(|(index, modinfo)| (modinfo.unique_id, index))
                     .collect();
 
@@ -290,8 +255,7 @@ pub async fn compatibility_check(app_handle: AppHandle) -> bool {
                             let index = hash_map.get(&mod_info.unique_id).unwrap();
                             let new_mod: ModInfo = mods[*index].clone();
                             new_profile_mods.push(new_mod);
-                        }
-                        else {
+                        } else {
                             new_profile_mods.push(mod_info);
                         }
                     }
@@ -303,12 +267,9 @@ pub async fn compatibility_check(app_handle: AppHandle) -> bool {
                 save_mods(mods);
                 true
             }
-            None => {
-                false
-            }
+            None => false,
         }
-    }
-    else {
+    } else {
         true
     }
 }
@@ -318,12 +279,17 @@ pub fn check_dependencies(mods: Vec<ModInfo>) -> Vec<ModInfo> {
     let mut new_modinfo = Vec::new();
 
     // Create hashset of all unique_ids
-    let unique_ids: HashSet<Option<String>> = mods.iter().map(|mod_info| mod_info.unique_id.clone()).collect();
+    let unique_ids: HashSet<Option<String>> = mods
+        .iter()
+        .map(|mod_info| mod_info.unique_id.clone())
+        .collect();
 
     for mut mod_info in mods.clone() {
         if mod_info.dependencies.is_none() || mod_info.more_info.is_some() {
-            if !(mod_info.more_info.is_some() &&
-                (mod_info.more_info.clone().unwrap().contains("Missing") || mod_info.more_info.clone().unwrap().contains("Recommended"))) {
+            if !(mod_info.more_info.is_some()
+                && (mod_info.more_info.clone().unwrap().contains("Missing")
+                    || mod_info.more_info.clone().unwrap().contains("Recommended")))
+            {
                 new_modinfo.push(mod_info.clone());
                 continue;
             }
@@ -342,7 +308,9 @@ pub fn check_dependencies(mods: Vec<ModInfo>) -> Vec<ModInfo> {
 
                         mod_info.more_info = Some(format!(
                             "<span style=\"color: #cf3838\">Missing mod: {}</span>",
-                            dependency.unique_id.replace(format!("{}.", split[0]).as_str(), "")
+                            dependency
+                                .unique_id
+                                .replace(format!("{}.", split[0]).as_str(), "")
                         ));
                         break;
                     } else {
@@ -360,8 +328,7 @@ pub fn check_dependencies(mods: Vec<ModInfo>) -> Vec<ModInfo> {
                 }
                 new_modinfo.push(mod_info.clone());
             }
-            None => {
-            }
+            None => {}
         }
     }
 

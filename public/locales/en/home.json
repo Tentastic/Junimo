@@ -16,6 +16,10 @@
 
   "search": "Search...",
 
+  "helpOpen": "Open Help",
+  "helpUpdater": "Check for Updates",
+  "helpSmapi": "Check for SMAPI Updates",
+
   "currentMods": "Current Mods",
   "installedMods": "Installed Mods",
   "unselect": "Unselect all",

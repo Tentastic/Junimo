@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
+use crate::app::models::mod_info::ModInfo;
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::app::mods::ModInfo;
 use crate::app::utility::version_extractor;
 
 /// Struct to extract id and installed version of each mod
@@ -116,8 +116,7 @@ pub async fn get_compability(mods: Vec<ModInfo>) -> Option<Vec<ModInfo>> {
         Some(version) => {
             game_version = version;
         }
-        None => {
-        }
+        None => {}
     }
     let api_version: Option<String> = version_extractor::get_version("StardewModdingAPI.dll");
 
@@ -132,8 +131,7 @@ pub async fn get_compability(mods: Vec<ModInfo>) -> Option<Vec<ModInfo>> {
                 };
                 mods_post.push(smapi_mod);
             }
-            None => {
-            }
+            None => {}
         }
     }
 
@@ -158,7 +156,7 @@ pub async fn get_compability(mods: Vec<ModInfo>) -> Option<Vec<ModInfo>> {
     } else {
         println!("Error: {:?}", res.status());
         None
-    }
+    };
 }
 
 /// Process the response of the post request
@@ -171,13 +169,17 @@ async fn process_post_response(res: Response, mods: Vec<ModInfo>) -> Option<Vec<
     return match res.text().await {
         Ok(text) => {
             // Deserialize the response into a SmapiResult
-            let result: Result<Vec<SmapiWrapper>, serde_json::Error> = serde_json::from_str(text.as_str());
+            let result: Result<Vec<SmapiWrapper>, serde_json::Error> =
+                serde_json::from_str(text.as_str());
             match result {
                 Ok(wrapper) => {
                     let mut new_mods: Vec<ModInfo> = mods.clone();
 
                     // Create a hashmap to get the index of a mod by its unique id
-                    let hash_map: HashMap<_, _> = mods.clone().into_iter().enumerate()
+                    let hash_map: HashMap<_, _> = mods
+                        .clone()
+                        .into_iter()
+                        .enumerate()
                         .map(|(index, modinfo)| (modinfo.unique_id, index))
                         .collect();
 
@@ -190,13 +192,27 @@ async fn process_post_response(res: Response, mods: Vec<ModInfo>) -> Option<Vec<
                             match mod_info.metadata.compability_status {
                                 Some(status) => {
                                     if status != "Ok" {
-                                        if &mod_info.metadata.compability_summary.clone().unwrap().contains(copied_mod.version.as_str()) == &false {
-                                            let more_info = format!("<span class=\"console-{}\">{}</span>", status.to_lowercase(), mod_info.metadata.compability_summary.unwrap().replace("<a", "<a target=\"_blank\""));
+                                        if &mod_info
+                                            .metadata
+                                            .compability_summary
+                                            .clone()
+                                            .unwrap()
+                                            .contains(copied_mod.version.as_str())
+                                            == &false
+                                        {
+                                            let more_info = format!(
+                                                "<span class=\"console-{}\">{}</span>",
+                                                status.to_lowercase(),
+                                                mod_info
+                                                    .metadata
+                                                    .compability_summary
+                                                    .unwrap()
+                                                    .replace("<a", "<a target=\"_blank\"")
+                                            );
                                             copied_mod.more_info = Some(more_info);
                                             copied_mod.is_broken = Some(true);
                                             new_mods[*get_index] = copied_mod.clone();
-                                        }
-                                        else {
+                                        } else {
                                             copied_mod.more_info = None;
                                             copied_mod.is_broken = None;
                                             new_mods[*get_index] = copied_mod.clone();
@@ -212,12 +228,10 @@ async fn process_post_response(res: Response, mods: Vec<ModInfo>) -> Option<Vec<
                     }
 
                     Some(new_mods)
-                },
+                }
                 Err(e) => None,
             }
         }
-        Err(e) => {
-            None
-        }
-    }
+        Err(e) => None,
+    };
 }

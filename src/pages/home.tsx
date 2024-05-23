@@ -2,7 +2,6 @@ import {useContext, useEffect, useRef, useState} from "react";
 import DancingJunimo from "../assets/JunimoDance.gif";
 import { invoke } from "@tauri-apps/api/core";
 import "../App.css";
-import { ArrowLeft, ArrowRight } from 'lucide-react';
 import {
     Menubar,
 } from "@components/ui/menubar"
@@ -10,8 +9,6 @@ import Downloader from "@components/Downloader.tsx";
 import ModsInstalled from "@components/ModsInstalled.tsx";
 import {clsx} from "clsx";
 import Mods from "@components/Mods.tsx";
-import {Profile} from "@models/profile.ts";
-import {ModInfos} from "@models/mods.ts";
 import Console from "@components/Console.tsx";
 import {Download} from "@models/download.ts";
 import Theme from "@components/menubar/Theme.tsx";
@@ -22,9 +19,11 @@ import UtilityBar from "@components/UtilityBar.tsx";
 import Help from "@components/menubar/Help.tsx";
 import File from "@components/menubar/File.tsx";
 import WindowActions from "@components/menubar/WindowActions.tsx";
-import {ModsContext, useModsState} from "@components/ModsProvider.tsx";
+import {useModsState} from "@components/ModsProvider.tsx";
 import MiddleButtons from "@components/MiddleButtons.tsx";
 import {useTranslation} from "react-i18next";
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 
 function Home() {
     const [downloadList, setDownloadList] = useState<Download[]>([]);
@@ -41,9 +40,14 @@ function Home() {
 
   async function initApp() {
       await invoke("init");
-      setTimeout(() => {
+      setTimeout(async () => {
           reloadKey[1](prevKey => prevKey + 1);
-          invoke("close_splashscreen");
+          await invoke("close_splashscreen");
+
+          const update = await check();
+          if (update?.available) {
+              await invoke("open_updater");
+          }
       }, 400);
   }
 
@@ -77,7 +81,6 @@ function Home() {
 
         const handleReload = (event: any) => {
             reloadKey[1](prevKey => prevKey + 1);
-            console.log(i18n.language)
         };
 
         initApp();
@@ -87,7 +90,6 @@ function Home() {
         let unsubscribeReloadEvent = listen('reload', handleReload);
         let unsubscribeLanguageEvent = listen('language_changed', async (event) => {
             const lang = event.payload as string;
-            console.log(lang);
             await i18n.changeLanguage(lang);
         });
 
