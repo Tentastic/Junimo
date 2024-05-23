@@ -3,19 +3,19 @@
 
 use std::fs;
 
-use tauri::{command, Manager};
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{ClickType, TrayIconBuilder};
+use tauri::{command, Manager};
+use tauri_plugin_updater::UpdaterExt;
 
-use crate::app::{config, import, mods, profiles, user};
-use crate::app::{api, export, game};
-use crate::app::api::downloader;
+use crate::app::api::{downloader, github};
 use crate::app::app_state::AppState;
 use crate::app::utility::paths;
+use crate::app::{api, export, game, smapi, junimo_updater};
+use crate::app::{config, import, mods, profiles, user};
 
 mod app;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[command]
 async fn greet(app: tauri::AppHandle) -> String {
     let version = app.package_info().version.clone().to_string();
@@ -36,7 +36,7 @@ async fn show_window(window: tauri::Window, label: String) -> String {
         .get_webview_window(label.as_str())
         .unwrap()
         .show()
-        .unwrap(); // replace "main" by the name of your window
+        .unwrap();
     "Opened".to_owned()
 }
 
@@ -64,7 +64,7 @@ async fn close_splashscreen(window: tauri::Window, handle: tauri::AppHandle) {
 }
 
 #[command]
-async fn close(handle: tauri::AppHandle)  {
+async fn close(handle: tauri::AppHandle) {
     handle.exit(0);
 }
 
@@ -80,8 +80,10 @@ pub fn main() {
     let (app_state, rx) = AppState::new();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let app_handle = app.app_handle();
             let _ = config::init_config(&app_handle, paths::appdata_path().as_path());
@@ -107,7 +109,6 @@ pub fn main() {
                 })
                 .icon(app.default_window_icon().cloned().unwrap())
                 .build(app)?;
-
 
             Ok(())
         })
@@ -173,6 +174,10 @@ pub fn main() {
             import::select_import_dir,
             import::import_profile,
             downloader::stop_download,
+            github::check_smapi_version,
+            smapi::open_smapi,
+            smapi::download_smapi,
+            junimo_updater::open_updater
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
