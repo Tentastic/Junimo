@@ -17,9 +17,17 @@
     ]
   },
   "productName": "junimo",
-  "version": "0.8.4",
+  "version": "0.8.3",
   "identifier": "Junimo",
-  "plugins": {},
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://gist.githubusercontent.com/Tentastic/9187504c87f0ff33058eedac5113ebfb/raw/"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVCOTFBREEyNEVCMDI5QkMKUldTOEtiQk9vcTJSVyt4OEpiYmEzdE1tN0h3UjJqc3dmcGlsakZDdHhnK1BJUjl6OWlvZGNhMEQK"
+    }
+  },
   "app": {
     "security": {
       "csp": null
