@@ -1,14 +1,14 @@
+use crate::app::utility::{paths, version_extractor};
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::Read;
+#[cfg(target_os = "windows")]
+use std::os::windows::ffi::OsStrExt;
 use widestring::U16CString;
 #[cfg(target_os = "windows")]
 use winapi::shared::minwindef::{DWORD, LPVOID};
 #[cfg(target_os = "windows")]
-use std::os::windows::ffi::OsStrExt;
-#[cfg(target_os = "windows")]
 use winapi::um::winver::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
-use crate::app::utility::{paths, version_extractor};
 
 #[cfg(target_family = "unix")]
 use pelite::pe64::{Pe, PeFile};
@@ -50,18 +50,27 @@ struct VsFixedfileinfo {
 ///
 /// # Returns Version of the dll or none if the version could not be extracted
 pub fn get_version(dll: &str) -> Option<String> {
-    let path = paths::get_game_path().join(dll).to_string_lossy().to_string();
+    let path = paths::get_game_path()
+        .join(dll)
+        .to_string_lossy()
+        .to_string();
     return match get_version_info_from_dll(path.as_str()) {
-        Some(version) => Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
+        Some(version) => Some(format!(
+            "{}.{}.{}",
+            version.major, version.minor, version.patch
+        )),
         None => None,
-    }
+    };
 }
 
 #[cfg(target_os = "windows")]
 /// Extracts the version of our games and smapis dll
 fn get_version_info_from_dll(path: &str) -> Option<Version> {
     // Convert path to a wide string
-    let wide_path: Vec<u16> = OsString::from(path).encode_wide().chain(std::iter::once(0)).collect();
+    let wide_path: Vec<u16> = OsString::from(path)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
 
     // Get the size of the version info
     let mut handle: DWORD = 0;
@@ -72,7 +81,14 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
 
     // Read the version info into a buffer
     let mut buffer: Vec<u8> = vec![0; size as usize];
-    let result = unsafe { GetFileVersionInfoW(wide_path.as_ptr(), handle as usize as DWORD, size, buffer.as_mut_ptr() as *mut _) };
+    let result = unsafe {
+        GetFileVersionInfoW(
+            wide_path.as_ptr(),
+            handle as usize as DWORD,
+            size,
+            buffer.as_mut_ptr() as *mut _,
+        )
+    };
     if result == 0 {
         return None;
     }
@@ -81,7 +97,14 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
     let mut lp_buffer: LPVOID = std::ptr::null_mut();
     let mut len: u32 = 0;
     let sub_block = U16CString::from_str("\\").unwrap();
-    let result = unsafe { VerQueryValueW(buffer.as_ptr() as *const _, sub_block.as_ptr(), &mut lp_buffer, &mut len) };
+    let result = unsafe {
+        VerQueryValueW(
+            buffer.as_ptr() as *const _,
+            sub_block.as_ptr(),
+            &mut lp_buffer,
+            &mut len,
+        )
+    };
     if result == 0 {
         return None;
     }
@@ -109,16 +132,20 @@ fn get_version_info_from_dll(path: &str) -> Option<Version> {
 ///
 /// # Returns Version of the dll or none if the version could not be extracted
 pub fn get_version(dll: &str) -> Option<String> {
-    let path = paths::get_game_path().join(dll).to_string_lossy().to_string();
+    let path = paths::get_game_path()
+        .join(dll)
+        .to_string_lossy()
+        .to_string();
     return match get_version_info_from_dll(path.as_str()) {
-        Ok(version) => {
-            match version {
-                Some(version) => Some(format!("{}.{}.{}", version.major, version.minor, version.patch)),
-                None => None,
-            }
+        Ok(version) => match version {
+            Some(version) => Some(format!(
+                "{}.{}.{}",
+                version.major, version.minor, version.patch
+            )),
+            None => None,
         },
         _ => None,
-    }
+    };
 }
 
 #[cfg(target_family = "unix")]
@@ -143,14 +170,11 @@ fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, String> {
     // Access the resources section
     let resources = pe.resources().expect("Failed to get resources");
 
-
-
     let version_info = resources.version_info();
     if version_info.is_err() {
         return Err(version_info.err().unwrap().to_string());
     }
     let version_info = version_info.unwrap();
-
 
     let fixed = version_info.fixed();
     if fixed.is_none() {
@@ -162,7 +186,7 @@ fn get_version_info_from_dll(path: &str) -> Result<Option<Version>, String> {
         major: fixed.dwFileVersion.Major,
         minor: fixed.dwFileVersion.Minor,
         patch: fixed.dwFileVersion.Patch,
-        build: fixed.dwFileVersion.Build
+        build: fixed.dwFileVersion.Build,
     };
 
     Ok(Some(version))
