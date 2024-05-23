@@ -1,4 +1,7 @@
 import Splash from '../assets/Splash.png';
+import {check} from "@tauri-apps/plugin-updater";
+import {relaunch} from "@tauri-apps/plugin-process";
+import {useEffect} from "react";
 
 export default function Splashscreen() {
     return (
