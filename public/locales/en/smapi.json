@@ -1,0 +1,9 @@
+{
+  "smapiTitle": "SMAPI Installation",
+  "smapiButton": "Download & Install",
+  "noVersion": "No SMAPI version was found online. Please check your internet connection.",
+  "firstInstall": "Install your first SMAPI Version:",
+  "newVersion": "A new version of SMAPI was found:",
+  "currentVersion": "You have the latest version of SMAPI installed."
+
+}
