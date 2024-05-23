@@ -1,14 +1,17 @@
-use crate::app::api::{compatibility, mods_api, nexuswebsocket};
-use crate::app::app_state::AppState;
-use crate::app::mods::{get_all_mods, ModInfo};
-use crate::app::utility::{paths, zips};
-use crate::app::{console, mod_installation, mods};
-use futures_util::StreamExt;
-use serde::{Deserialize, Serialize};
+use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::{fs, thread};
+
+use futures_util::StreamExt;
+use serde::{Deserialize, Serialize};
 use tauri::{command, AppHandle, Manager, State};
+
+use crate::app::api::{mods_api, nexuswebsocket};
+use crate::app::app_state::AppState;
+use crate::app::models::mod_info::ModInfo;
+use crate::app::mods::get_all_mods;
+use crate::app::utility::paths;
+use crate::app::{console, mod_installation, mods};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DownloadPaths {
@@ -79,8 +82,7 @@ pub async fn start_download(app_handle: &AppHandle, url_str: &str, app_state: Ap
 
         let handle_clone = app_handle.clone();
         download(&handle_clone, &paths[0].URI, infos, app_state).await;
-    }
-    else {
+    } else {
         println!("Failed to get download link {}", res.status());
     }
 }
@@ -155,10 +157,9 @@ async fn download(app_handle: &AppHandle, url_str: &str, infos: ModInfo, app_sta
         let _ = mod_installation::start_installation(app_handle.clone(), &temp_path).await;
         match fs::remove_file(&temp_path) {
             Ok(_) => (),
-            Err(_) => ()
+            Err(_) => (),
         }
-    }
-    else {
+    } else {
         // Show the user that the download was aborted
         let mut mod_list = get_all_mods();
         mod_list.retain(|mod_info| mod_info.name != infos.name);

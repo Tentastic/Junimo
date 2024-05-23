@@ -1,8 +1,8 @@
-use std::{env, fs};
-use std::path::PathBuf;
-use tauri::command;
-use crate::app::{config, profiles};
 use crate::app::utility::paths;
+use crate::app::{config, profiles};
+use std::path::PathBuf;
+use std::{env, fs};
+use tauri::command;
 
 pub fn appdata_path() -> PathBuf {
     let mut path = dirs::config_dir().unwrap();
@@ -72,14 +72,12 @@ pub fn profile_path() -> PathBuf {
 }
 
 pub fn get_app_bundle_path() -> Option<String> {
-    env::current_exe()
-        .ok()
-        .and_then(|path| {
-            path.parent() // Points to the executable's directory, typically Contents/MacOS
-                .and_then(|path| path.parent()) // Go up to Contents
-                .and_then(|path| path.parent()) // Go up to the .app bundle
-                .map(|path| path.to_string_lossy().into_owned())
-        })
+    env::current_exe().ok().and_then(|path| {
+        path.parent() // Points to the executable's directory, typically Contents/MacOS
+            .and_then(|path| path.parent()) // Go up to Contents
+            .and_then(|path| path.parent()) // Go up to the .app bundle
+            .map(|path| path.to_string_lossy().into_owned())
+    })
 }
 
 #[cfg(test)]

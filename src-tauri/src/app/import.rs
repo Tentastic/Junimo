@@ -1,14 +1,11 @@
-use crate::app::profiles::Profile;
-use crate::app::utility::{paths, zips};
-use crate::app::{console, mods, profiles};
+use std::path::Path;
+use std::{fs, thread};
+
 use rfd::FileDialog;
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::{fs, io, thread};
 use tauri::{command, Manager, WebviewUrl, Window};
-use walkdir::WalkDir;
-use zip::write::SimpleFileOptions;
-use zip::ZipWriter;
+
+use crate::app::console;
+use crate::app::utility::{paths, zips};
 
 /// Opens the import window
 ///
@@ -75,7 +72,12 @@ pub fn import_profile(window: Window, handle: tauri::AppHandle, path: &str, all:
         file_name = file_name.replace(".zip", "");
 
         let zip_archive = zip::ZipArchive::new(file).unwrap();
-        let import_result = zips::import_zip(zip_archive, &paths::appdata_path(), &paths::temp_path(), all);
+        let import_result = zips::import_zip(
+            zip_archive,
+            &paths::appdata_path(),
+            &paths::temp_path(),
+            all,
+        );
         match import_result {
             Ok(_) => {
                 console::add_line(

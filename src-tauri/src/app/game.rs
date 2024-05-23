@@ -1,21 +1,20 @@
-use crate::app::app_state::AppState;
-use crate::app::config::Config;
-use crate::app::mods::ModInfo;
-use crate::app::utility::{paths, zips};
-use crate::app::{config, console, mods, profiles};
-use portable_pty::{native_pty_system, Child, CommandBuilder, PtyPair, PtySize};
-use regex::Regex;
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
+use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, fs, thread};
+
+use portable_pty::{native_pty_system, Child, CommandBuilder, PtyPair, PtySize};
+use regex::Regex;
 use sysinfo::System;
 use tauri::{command, AppHandle, Manager, State};
-use zip::ZipArchive;
+
+use crate::app::app_state::AppState;
+use crate::app::models::mod_info::ModInfo;
+use crate::app::utility::paths;
+use crate::app::{config, console, profiles};
 
 /// Starts the game through the frontend
 ///
@@ -24,7 +23,10 @@ use zip::ZipArchive;
 ///
 /// # Returns Command result
 #[command]
-pub async fn start_game(app_handle: AppHandle, app_state: State<'_, AppState>) -> Result<(), String> {
+pub async fn start_game(
+    app_handle: AppHandle,
+    app_state: State<'_, AppState>,
+) -> Result<(), String> {
     console::empty_line(&app_handle);
     console::add_line(
         &app_handle,
@@ -84,8 +86,9 @@ async fn init_game(
         // Puts all directories to add into a Vec
         let mods_to_add = directories
             .iter()
-            .filter(|dir| mod_names.contains(&dir.replace(".","").to_string()) &&
-                dir.contains("."))
+            .filter(|dir| {
+                mod_names.contains(&dir.replace(".", "").to_string()) && dir.contains(".")
+            })
             .collect::<Vec<_>>();
 
         // Uninstall and install mods
@@ -96,35 +99,43 @@ async fn init_game(
 
         // Check if there are any missing dependencies
         let any_missing_mods = any_missing_dependencies(&mods);
-        if any_missing_mods && (config.block_on_missing_requirements.is_none()
-            || (config.block_on_missing_requirements.is_some() && config.block_on_missing_requirements.unwrap())) {
+        if any_missing_mods
+            && (config.block_on_missing_requirements.is_none()
+                || (config.block_on_missing_requirements.is_some()
+                    && config.block_on_missing_requirements.unwrap()))
+        {
             return Err("Missing requirements detected. Please check your mods.".to_string());
         }
 
         // Check if there are any broken mods
-        let broken_mods = !mods.iter().filter(|mod_info| mod_info.is_broken.is_some()).collect::<Vec<_>>().is_empty();
-        if broken_mods && (config.block_on_broken.is_none()
-            || (config.block_on_broken.is_some() && config.block_on_broken.unwrap())) {
-            return Err("Some of your currently installed mods are broken. Please remove or update them.".to_string());
+        let broken_mods = !mods
+            .iter()
+            .filter(|mod_info| mod_info.is_broken.is_some())
+            .collect::<Vec<_>>()
+            .is_empty();
+        if broken_mods
+            && (config.block_on_broken.is_none()
+                || (config.block_on_broken.is_some() && config.block_on_broken.unwrap()))
+        {
+            return Err(
+                "Some of your currently installed mods are broken. Please remove or update them."
+                    .to_string(),
+            );
         }
 
         let smapi_result = start_smapi(app_handle, &stop_game.clone());
         return match smapi_result {
-            Ok(_) => {
-                Ok(())
-            }
-            Err(e) => {
-                Err(e)
-            }
-        }
-    }).await.unwrap();
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        };
+    })
+    .await
+    .unwrap();
 
     return match spawn_result {
         Ok(_) => Ok(()),
-        Err(e) => {
-            Err(e.to_string())
-        }
-    }
+        Err(e) => Err(e.to_string()),
+    };
 }
 
 /// Checks if there are any missing dependencies
@@ -156,15 +167,13 @@ pub fn any_missing_dependencies(mods: &Vec<ModInfo>) -> bool {
                     // If the dependency was not found, and it is required, return true
                     if dependency.is_required == None || dependency.is_required == Some(true) {
                         return true;
-                    }
-                    else {
+                    } else {
                         continue;
                     }
                 }
                 new_modinfo.push(mod_info.clone());
             }
-            None => {
-            }
+            None => {}
         }
     }
     false
@@ -227,14 +236,10 @@ fn uninstall_mods(app_handle: &AppHandle, mod_path: &String, dir_to_remove: Vec<
 /// * `app_handle` - The app handle
 /// * `mod_path` - The path to the mods (usually the default Junimo mod path)
 /// * `mods_to_add` - The mods to add
-fn install_missing_mods(
-    app_handle: &AppHandle,
-    mod_path: &String,
-    mods_to_add: Vec<&String>,
-) {
+fn install_missing_mods(app_handle: &AppHandle, mod_path: &String, mods_to_add: Vec<&String>) {
     for dir in mods_to_add {
         let dir_path = PathBuf::from(mod_path).join(dir);
-        let new_path = PathBuf::from(mod_path).join(dir.replace(".",""));
+        let new_path = PathBuf::from(mod_path).join(dir.replace(".", ""));
         if new_path.exists() {
             fs::remove_dir_all(&new_path).unwrap();
         }
@@ -244,7 +249,7 @@ fn install_missing_mods(
                     &app_handle,
                     format!(
                         "<span style=\"color: #2fb565\">[Junimo] Installed {}</span>",
-                        &dir.replace(".","")
+                        &dir.replace(".", "")
                     ),
                 );
             }
@@ -253,7 +258,7 @@ fn install_missing_mods(
                     &app_handle,
                     format!(
                         "<span style=\"color: #c22f2f\">[Junimo] Failed to install {} ({})</span>",
-                        &dir.replace(".",""),
+                        &dir.replace(".", ""),
                         e.to_string()
                     ),
                 );
@@ -281,11 +286,15 @@ fn start_smapi(app_handle: AppHandle, app_state: &Arc<Mutex<bool>>) -> Result<()
 
     #[cfg(target_os = "windows")]
     if !game_path.clone().join("StardewModdingAPI.exe").exists() {
-        return Err("SMAPI was not found! Please install SMAPI before starting the game.".to_string());
+        return Err(
+            "SMAPI was not found! Please install SMAPI before starting the game.".to_string(),
+        );
     }
     #[cfg(not(target_os = "windows"))]
     if !game_path.clone().join("StardewModdingAPI.dll").exists() {
-        return Err("SMAPI was not found! Please install SMAPI before starting the game.".to_string());
+        return Err(
+            "SMAPI was not found! Please install SMAPI before starting the game.".to_string(),
+        );
     }
 
     // Get the path to the SMAPI executable. On Windows it is a .exe file, on other platforms it is a .dll file

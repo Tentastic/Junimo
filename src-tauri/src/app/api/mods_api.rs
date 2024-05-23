@@ -1,9 +1,8 @@
-use crate::app::api::nexuswebsocket;
-use crate::app::mods::ModInfo;
-use tauri::http::method::Method;
-use tauri::http::Request;
 use url::form_urlencoded::Parse;
 use url::Url;
+
+use crate::app::api::nexuswebsocket;
+use crate::app::models::mod_info::ModInfo;
 
 pub fn get_download_link(url_str: &str) -> String {
     let url = Url::parse(url_str).unwrap();
@@ -16,8 +15,7 @@ pub fn get_download_link(url_str: &str) -> String {
 
     if query_pairs.count() < 2 {
         premium_link(domain.to_string(), path_segments)
-    }
-    else {
+    } else {
         link_request(domain.to_string(), path_segments, query_pairs)
     }
 }
@@ -25,9 +23,7 @@ pub fn get_download_link(url_str: &str) -> String {
 fn premium_link(domain: String, path_segments: Vec<&str>) -> String {
     let api_url = format!(
         "https://api.nexusmods.com/v1/games/{}/mods/{}/files/{}/download_link.json",
-        domain,
-        path_segments[1],
-        path_segments[3]
+        domain, path_segments[1], path_segments[3]
     );
     api_url
 }
@@ -49,7 +45,10 @@ fn link_request(domain: String, path_segments: Vec<&str>, mut query_pairs: Parse
 
 pub async fn get_infos(url_str: &str) -> Option<ModInfo> {
     let url = Url::parse(url_str).unwrap();
-    let path_segments: Vec<&str> = url.path_segments().map(|c| c.collect()).unwrap_or_else(Vec::new);
+    let path_segments: Vec<&str> = url
+        .path_segments()
+        .map(|c| c.collect())
+        .unwrap_or_else(Vec::new);
     let api_url = format!(
         "https://api.nexusmods.com/v1/games/{}/mods/{}.json",
         url.domain().unwrap(),
@@ -57,7 +56,8 @@ pub async fn get_infos(url_str: &str) -> Option<ModInfo> {
     );
 
     let client = reqwest::Client::new();
-    let res = client.get(&api_url)
+    let res = client
+        .get(&api_url)
         .header("accept", "application/json")
         .header("apikey", nexuswebsocket::load_key())
         .send()
@@ -69,8 +69,7 @@ pub async fn get_infos(url_str: &str) -> Option<ModInfo> {
         let body_str = body.as_str();
         let mod_info: ModInfo = serde_json::from_str(body_str).unwrap();
         Some(mod_info)
-    }
-    else {
+    } else {
         None
     }
 }
@@ -117,7 +116,11 @@ mod tests {
             .unwrap_or_else(Vec::new);
         let query_pairs = url.query_pairs();
         let domain = url.domain().unwrap().to_string();
-        let link_request = link_request(domain.to_string().clone(), path_segments.clone(), query_pairs.clone());
+        let link_request = link_request(
+            domain.to_string().clone(),
+            path_segments.clone(),
+            query_pairs.clone(),
+        );
 
         assert_eq!(path_segments, vec!["mods", "1915", "files", "92455"]);
         assert_eq!(query_pairs.count(), 3);
@@ -143,6 +146,9 @@ mod tests {
     fn test_api_url() {
         let url_str = "nxm://stardewvalley/mods/1915/files/92455?key=7PKaqYlhW6z-RNUOLSq3uQ&expires=1715679746&user_id=66607686";
         let result = api_url(url_str);
-        assert_eq!(result, "https://api.nexusmods.com/v1/games/stardewvalley/mods/1915.json");
+        assert_eq!(
+            result,
+            "https://api.nexusmods.com/v1/games/stardewvalley/mods/1915.json"
+        );
     }
 }

@@ -1,41 +1,35 @@
+use crate::app::models::mod_info::ModInfo;
+use crate::app::utility::paths;
+use crate::app::{config, mods};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 use tauri::{command, Manager, Runtime, WebviewUrl};
-use crate::app::{config, mods};
-use crate::app::mods::{ModInfo};
-use crate::app::utility::paths;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Profile {
     pub name: String,
     pub mods: Vec<ModInfo>,
-    pub currently: bool
+    pub currently: bool,
 }
 
 #[command]
 pub async fn open_profile<R: Runtime>(handle: tauri::AppHandle<R>) {
     #[cfg(target_os = "windows")]
-    tauri::WebviewWindowBuilder::new(
-        &handle,
-        "Profiles",
-        WebviewUrl::App("/profiles".into())
-    )
+    tauri::WebviewWindowBuilder::new(&handle, "Profiles", WebviewUrl::App("/profiles".into()))
         .title("Profiles")
         .transparent(true)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     #[cfg(target_os = "unix")]
-    tauri::WebviewWindowBuilder::new(
-        &handle,
-        "Profiles",
-        WebviewUrl::App("/profiles".into())
-    )
+    tauri::WebviewWindowBuilder::new(&handle, "Profiles", WebviewUrl::App("/profiles".into()))
         .title("Profiles")
-        .build().unwrap();
+        .build()
+        .unwrap();
 }
 
 #[command]
@@ -81,7 +75,9 @@ pub async fn get_current_profile(path: PathBuf) -> Profile {
             return_profile = new_profile.clone();
         }
     }
-    return_profile.mods.sort_by(|info1, info2| info1.name.cmp(&info2.name));
+    return_profile
+        .mods
+        .sort_by(|info1, info2| info1.name.cmp(&info2.name));
 
     return_profile
 }
@@ -92,17 +88,21 @@ pub fn check_path(path: &PathBuf) -> bool {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         profiles.push(profile);
         save_profiles(&profiles, &paths::profile_path());
-        return false
+        return false;
     }
     true
 }
 
 #[command]
-pub fn change_current_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path: PathBuf) -> Vec<Profile> {
+pub fn change_current_profile<R: Runtime>(
+    handle: tauri::AppHandle<R>,
+    name: &str,
+    path: PathBuf,
+) -> Vec<Profile> {
     let profiles = get_profiles(path.clone());
 
     let mut new_profiles: Vec<Profile> = Vec::new();
@@ -111,25 +111,31 @@ pub fn change_current_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &st
             let new_profile = Profile {
                 name: profile.name,
                 mods: profile.mods,
-                currently: true
+                currently: true,
             };
             new_profiles.push(new_profile);
         } else {
             let new_profile = Profile {
                 name: profile.name,
                 mods: profile.mods,
-                currently: false
+                currently: false,
             };
             new_profiles.push(new_profile);
         }
     }
-    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
+    handle
+        .emit("profile-update", &new_profiles)
+        .expect("Failed to emit event");
     save_profiles(&new_profiles, &path);
     new_profiles
 }
 
 #[command]
-pub fn add_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path: PathBuf) -> Vec<Profile> {
+pub fn add_profile<R: Runtime>(
+    handle: tauri::AppHandle<R>,
+    name: &str,
+    path: PathBuf,
+) -> Vec<Profile> {
     let profiles = get_profiles(path.clone());
 
     let mut new_profiles: Vec<Profile> = Vec::new();
@@ -137,23 +143,29 @@ pub fn add_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path: Pa
         let new_profile = Profile {
             name: profile.name,
             mods: profile.mods,
-            currently: false
+            currently: false,
         };
         new_profiles.push(new_profile);
     }
     let new_profile = Profile {
         name: name.to_string(),
         mods: Vec::new(),
-        currently: true
+        currently: true,
     };
     new_profiles.push(new_profile);
-    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
+    handle
+        .emit("profile-update", &new_profiles)
+        .expect("Failed to emit event");
     save_profiles(&new_profiles, &path);
     new_profiles
 }
 
 #[command]
-pub fn remove_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path: PathBuf) -> Vec<Profile> {
+pub fn remove_profile<R: Runtime>(
+    handle: tauri::AppHandle<R>,
+    name: &str,
+    path: PathBuf,
+) -> Vec<Profile> {
     let profiles = get_profiles(path.clone());
 
     let mut new_profiles: Vec<Profile> = Vec::new();
@@ -162,13 +174,20 @@ pub fn remove_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, path:
             new_profiles.push(profile);
         }
     }
-    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
+    handle
+        .emit("profile-update", &new_profiles)
+        .expect("Failed to emit event");
     save_profiles(&new_profiles, &path);
     new_profiles
 }
 
 #[command]
-pub fn modify_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, new_name: &str, path: PathBuf) -> Vec<Profile> {
+pub fn modify_profile<R: Runtime>(
+    handle: tauri::AppHandle<R>,
+    name: &str,
+    new_name: &str,
+    path: PathBuf,
+) -> Vec<Profile> {
     let profiles = get_profiles(path.clone());
 
     let mut new_profiles: Vec<Profile> = Vec::new();
@@ -177,14 +196,16 @@ pub fn modify_profile<R: Runtime>(handle: tauri::AppHandle<R>, name: &str, new_n
             let new_profile = Profile {
                 name: new_name.parse().unwrap(),
                 mods: profile.mods,
-                currently: profile.currently
+                currently: profile.currently,
             };
             new_profiles.push(new_profile);
         } else {
             new_profiles.push(profile);
         }
     }
-    handle.emit("profile-update", &new_profiles).expect("Failed to emit event");
+    handle
+        .emit("profile-update", &new_profiles)
+        .expect("Failed to emit event");
     save_profiles(&new_profiles, &path);
     new_profiles
 }
@@ -194,7 +215,7 @@ pub fn change_profile_mods(name: &str, mut mods: Vec<ModInfo>, path: PathBuf) {
     let profiles = get_profiles(path.clone());
 
     let mut seen = HashSet::new();
-    mods.retain(|mod_info| seen.insert(mod_info.name.clone()));  // Retains only if name is new to the set
+    mods.retain(|mod_info| seen.insert(mod_info.name.clone())); // Retains only if name is new to the set
 
     let mut new_profiles: Vec<Profile> = Vec::new();
     for profile in profiles {
@@ -202,7 +223,7 @@ pub fn change_profile_mods(name: &str, mut mods: Vec<ModInfo>, path: PathBuf) {
             let new_profile = Profile {
                 name: profile.name,
                 mods: mods.clone(),
-                currently: profile.currently
+                currently: profile.currently,
             };
             new_profiles.push(new_profile);
         } else {
@@ -214,9 +235,9 @@ pub fn change_profile_mods(name: &str, mut mods: Vec<ModInfo>, path: PathBuf) {
 
 #[cfg(test)]
 mod tests {
+    use crate::app::app_state::AppState;
     use tauri::test::mock_builder;
     use tempfile::tempdir;
-    use crate::app::app_state::AppState;
 
     use super::*;
 
@@ -248,7 +269,7 @@ mod tests {
     #[derive(Serialize, Deserialize, Debug)]
     struct ModifyWrap {
         name: String,
-        path: PathBuf
+        path: PathBuf,
     }
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -256,14 +277,14 @@ mod tests {
         name: String,
         #[serde(rename = "newName")]
         new_name: String,
-        path: PathBuf
+        path: PathBuf,
     }
 
     #[derive(Serialize, Deserialize, Debug)]
     struct ModWrap {
         name: String,
         path: PathBuf,
-        mods: Vec<ModInfo>
+        mods: Vec<ModInfo>,
     }
 
     #[test]
@@ -296,7 +317,7 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         profiles.push(profile);
 
@@ -321,7 +342,7 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         profiles.push(profile);
 
@@ -351,7 +372,14 @@ mod tests {
         );
 
         assert!(res.is_ok());
-        assert_eq!(res.unwrap().deserialize::<Vec<Profile>>().unwrap().iter().count(), profiles.iter().count());
+        assert_eq!(
+            res.unwrap()
+                .deserialize::<Vec<Profile>>()
+                .unwrap()
+                .iter()
+                .count(),
+            profiles.iter().count()
+        );
     }
 
     #[test]
@@ -363,12 +391,12 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         let test_profile = Profile {
             name: "Test".to_string(),
             mods: Vec::new(),
-            currently: false
+            currently: false,
         };
         profiles.push(profile.clone());
         profiles.push(test_profile.clone());
@@ -400,8 +428,14 @@ mod tests {
         );
 
         assert!(res.is_ok());
-        assert_eq!(res.clone().unwrap().deserialize::<Vec<Profile>>().unwrap()[0].currently, false);
-        assert_eq!(res.unwrap().deserialize::<Vec<Profile>>().unwrap()[1].currently, true);
+        assert_eq!(
+            res.clone().unwrap().deserialize::<Vec<Profile>>().unwrap()[0].currently,
+            false
+        );
+        assert_eq!(
+            res.unwrap().deserialize::<Vec<Profile>>().unwrap()[1].currently,
+            true
+        );
     }
 
     #[test]
@@ -413,12 +447,12 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         let test_profile = Profile {
             name: "Test".to_string(),
             mods: Vec::new(),
-            currently: false
+            currently: false,
         };
         profiles.push(profile.clone());
 
@@ -449,8 +483,14 @@ mod tests {
         );
 
         assert!(res.is_ok());
-        assert_eq!(res.clone().unwrap().deserialize::<Vec<Profile>>().unwrap()[0].currently, false);
-        assert_eq!(res.unwrap().deserialize::<Vec<Profile>>().unwrap()[1].currently, true);
+        assert_eq!(
+            res.clone().unwrap().deserialize::<Vec<Profile>>().unwrap()[0].currently,
+            false
+        );
+        assert_eq!(
+            res.unwrap().deserialize::<Vec<Profile>>().unwrap()[1].currently,
+            true
+        );
     }
 
     #[test]
@@ -462,12 +502,12 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         let test_profile = Profile {
             name: "Test".to_string(),
             mods: Vec::new(),
-            currently: false
+            currently: false,
         };
         profiles.push(profile.clone());
         profiles.push(test_profile.clone());
@@ -499,7 +539,15 @@ mod tests {
         );
 
         assert!(res.is_ok());
-        assert_eq!(res.clone().unwrap().deserialize::<Vec<Profile>>().unwrap().iter().count(), 1);
+        assert_eq!(
+            res.clone()
+                .unwrap()
+                .deserialize::<Vec<Profile>>()
+                .unwrap()
+                .iter()
+                .count(),
+            1
+        );
     }
 
     #[test]
@@ -511,12 +559,12 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         let test_profile = Profile {
             name: "Test".to_string(),
             mods: Vec::new(),
-            currently: false
+            currently: false,
         };
         profiles.push(profile.clone());
         profiles.push(test_profile.clone());
@@ -549,7 +597,10 @@ mod tests {
         );
 
         assert!(res.is_ok());
-        assert_eq!(res.unwrap().deserialize::<Vec<Profile>>().unwrap()[1].name, "Test 2");
+        assert_eq!(
+            res.unwrap().deserialize::<Vec<Profile>>().unwrap()[1].name,
+            "Test 2"
+        );
     }
 
     #[test]
@@ -561,12 +612,12 @@ mod tests {
         let profile = Profile {
             name: "Default".to_string(),
             mods: Vec::new(),
-            currently: true
+            currently: true,
         };
         let test_profile = Profile {
             name: "Test".to_string(),
             mods: Vec::new(),
-            currently: false
+            currently: false,
         };
         profiles.push(profile.clone());
         profiles.push(test_profile.clone());

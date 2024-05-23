@@ -38,7 +38,7 @@ impl Config {
             activate_broken: Some(true),
             block_on_broken: Some(true),
             lang: Some("en".to_string()),
-            keep_open: Some(true)
+            keep_open: Some(true),
         }
     }
 }
@@ -67,7 +67,7 @@ pub async fn open_config<R: Runtime>(handle: tauri::AppHandle<R>) {
         .transparent(true)
         .build()
         .unwrap();
-    
+
     #[cfg(target_os = "unix")]
     tauri::WebviewWindowBuilder::new(&handle, "Config", WebviewUrl::App("/config".into()))
         .title("Settings")
@@ -76,7 +76,12 @@ pub async fn open_config<R: Runtime>(handle: tauri::AppHandle<R>) {
 }
 
 #[command]
-pub fn save_config_button<R: Runtime>(window: Window<R>, handle: tauri::AppHandle<R>, config: Config, path: PathBuf) {
+pub fn save_config_button<R: Runtime>(
+    window: Window<R>,
+    handle: tauri::AppHandle<R>,
+    config: Config,
+    path: PathBuf,
+) {
     let old_config = get_config(paths::config_path());
 
     if &old_config.lang != &config.lang {
@@ -137,13 +142,16 @@ fn register_nxm() -> Result<(), String> {
     let mut file = fs::File::create(&desktop_entry_path).map_err(|e| e.to_string())?;
 
     let current_exe = env::current_exe().map_err(|e| e.to_string())?;
-    let exec_path = current_exe.to_str().ok_or("Executable path is invalid UTF-8")?;
+    let exec_path = current_exe
+        .to_str()
+        .ok_or("Executable path is invalid UTF-8")?;
 
     let contents = format!(
         "[Desktop Entry]\nName=NXM Handler\nExec={} \"%u\"\nType=Application\nNoDisplay=true\nMimeType=x-scheme-handler/nxm;\n",
         exec_path
     );
-    file.write_all(contents.as_bytes()).map_err(|e| e.to_string())?;
+    file.write_all(contents.as_bytes())
+        .map_err(|e| e.to_string())?;
 
     // Updating the MIME-type database
     let output = std::process::Command::new("update-desktop-database")
@@ -174,10 +182,7 @@ mod tests {
         let (app_state, rx) = AppState::new();
 
         builder
-            .invoke_handler(tauri::generate_handler![
-                open_config,
-                save_config_button
-            ])
+            .invoke_handler(tauri::generate_handler![open_config, save_config_button])
             .manage(app_state.clone())
             // remove the string argument to use your app's config file
             .build(tauri::generate_context!())
