@@ -2,6 +2,8 @@
   "generalLabel": "General",
   "generalTitle": "General Settings",
   "gamePath": "Game Path",
+  "gamePathPlaceholder": "Please enter here your game path...",
+
   "language": "Language",
   "keepOpen": "Keep Junimo open",
   "keepOpenDesc": "Junimo will minimize into the system tray instead of closing when you click the close button in the main window.",
@@ -19,10 +21,13 @@
 
 
   "nexusModsTitle": "NexusMods Settings",
+  "apiLabel": "API Key",
+  "apiPlaceholder": "Please enter here your NexusMods API key...",
   "loggedIn": "Logged in as",
   "doLogin": "Login via",
   "handleMessage": "Let Junimo handle the",
   "buttonMessage": "button",
+  "nexusmodsNotAllowed": "NexusMods login is not allowed in this version of Junimo",
 
   "saveLabel": "Save"
 }

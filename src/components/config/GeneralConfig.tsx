@@ -81,7 +81,7 @@ export default function GeneralConfig() {
                     <Label htmlFor="path" className="ml-1 mb-2 text-xl">{t("gamePath")}</Label>
                     <p className="text-sm text-muted-foreground"></p>
                     <div className="flex gap-2">
-                        <Input id="path" placeholder="Please enter your game path..."
+                        <Input id="path" placeholder={t("gamePathPlaceholder")}
                                value={gamePath} onChange={x => setGamePath(x.target.value)}/>
                         <button onClick={fetchConfigPath} className="w-10 h-10 flex items-center justify-center transition duration-150 border rounded-lg
                         bg-muted hover:bg-muted-dark">
