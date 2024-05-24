@@ -99,6 +99,7 @@ pub fn import_profile(window: Window, handle: tauri::AppHandle, path: &str, all:
                 );
             }
         }
+        &handle.emit("reload", false).unwrap();
         window_clone.close().unwrap();
     });
 }
