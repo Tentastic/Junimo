@@ -46,6 +46,9 @@ npm run tauri build
 ```
 
 ## 🚀 Planned for the future
+- Documentation
 - Saved mod configs for every profile
 - Mod config editor in the client
+- Custom theme creator
+- More languages
 - Bug fixes and improvements
