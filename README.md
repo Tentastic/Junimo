@@ -16,7 +16,7 @@
 </div>
 
 <p align="center">
-    <b>Junio</b> is an open source, multiplatform Stardew Valley Mod Client build in Tauri v2.
+    <b>Junimo</b> is an open source, multiplatform Stardew Valley Mod Client build in Tauri v2.
 </p>
 
 ## 🍏 What does Junimo do?
@@ -49,6 +49,7 @@ npm run tauri build
 - Documentation
 - Saved mod configs for every profile
 - Mod config editor in the client
+- Function that checks for already installed mods and adds them to the client
 - Custom theme creator
 - More languages
 - Bug fixes and improvements
