@@ -156,6 +156,8 @@ pub fn main() {
             config::open_config,
             config::get_config,
             config::save_config_button,
+            config::load_api_key,
+            config::set_api_key,
             user::connect_user,
             user::disconnect_user,
             user::load_user,

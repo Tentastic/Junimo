@@ -99,7 +99,7 @@ fn save_binary(data: &WebsocketData) {
     file.write_all(&encoded).unwrap();
 }
 
-fn save_key(key: String) {
+pub fn save_key(key: String) {
     let encoded: Vec<u8> = bincode::serialize(&key).unwrap();
     let mut file = File::create(app_path("key.stp")).unwrap();
     file.write_all(&encoded).unwrap();
