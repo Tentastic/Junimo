@@ -167,6 +167,7 @@ pub fn main() {
             profiles::remove_profile,
             profiles::modify_profile,
             profiles::change_profile_mods,
+            profiles::duplicate_profile,
             export::open_export,
             export::select_export_dir,
             export::export_profile,
