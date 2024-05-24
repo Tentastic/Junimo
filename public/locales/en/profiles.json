@@ -1,0 +1,17 @@
+{
+  "profilesLabel": "Profiles",
+  "profileEditLabel": "Edit Name from Profile",
+  "profileEditPlaceholder": "Please enter the new name of the profile...",
+
+  "profileDuplicateLabel": "Duplicate Profile",
+  "profileDuplicatePlaceholder": "Please enter the new name of the duplicated profile...",
+
+  "profileDeleteConfirmation": "Are you sure you want to delete this profile?",
+  "profileDeleteDescription": "This action cannot be undone. This will permanently delete this profile and all selected mods.",
+  "profileDeleteButton": "Delete",
+
+  "profileAdd": "Add Profile",
+  "profileAddPlaceholder": "Please enter the name of the new profile...",
+
+  "profileSave": "Save"
+}

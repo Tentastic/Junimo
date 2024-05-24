@@ -1,0 +1,17 @@
+{
+  "profilesLabel": "Profile",
+  "profileEditLabel": "Bearbeite den Profil Namen",
+  "profileEditPlaceholder": "Bitte gebe den neuen Namen des Profiles an...",
+
+  "profileDuplicateLabel": "Profil Duplizieren",
+  "profileDuplicatePlaceholder": "Bitte gebe den neuen Namen des duplizierten Profiles an...",
+
+  "profileDeleteConfirmation": "Bist du dir sicher, dass du das Profil löschen willst?",
+  "profileDeleteDescription": "Diese Aktion kann nicht rückgängig gemacht werden.",
+  "profileDeleteButton": "Löschen",
+
+  "profileAdd": "Profil hinzufügen",
+  "profileAddPlaceholder": "Bitte gebe den neuen Namen des neuen Profiles an...",
+
+  "profileSave": "Speichern"
+}
