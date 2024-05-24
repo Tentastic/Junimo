@@ -225,16 +225,18 @@ fn import_mod_file(
     all: bool,
 ) -> zip::result::ZipResult<()> {
     let mod_dest = destination.join(&path);
-
-    let dir_name = path.iter().nth(1).unwrap();
+    let mut path_iter = path.iter();
+    let dir_name = path_iter.nth(1).unwrap();
     let path_in_mods = paths::mod_path().join(dir_name);
     let path_in_mods_dot = paths::mod_path().join(format!(".{:?}", dir_name));
 
-    if (path_in_mods.exists() || path_in_mods_dot.exists()) && !all {
-        return Ok(());
-    } else if (path_in_mods.exists() || path_in_mods_dot.exists()) && all {
-        remove_if_exists(path_in_mods);
-        remove_if_exists(path_in_mods_dot);
+    if path_iter.clone().count() == 0 {
+        if (path_in_mods.exists() || path_in_mods_dot.exists()) && !all {
+            return Ok(());
+        } else if (path_in_mods.exists() || path_in_mods_dot.exists()) && all {
+            remove_if_exists(path_in_mods);
+            remove_if_exists(path_in_mods_dot);
+        }
     }
 
     if file.is_dir() {

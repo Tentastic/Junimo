@@ -14,15 +14,22 @@
   "darkTheme": "Dunkel",
   "blackTheme": "Schwarz",
 
+  "search": "Suche...",
+
   "helpOpen": "Hilfe öffnen",
   "helpUpdater": "Nach Updates suchen",
   "helpSmapi": "Nach SMAPI Updates suchen",
 
-  "search": "Suche...",
+  "uninstallLabel": "Deinstallieren",
+  "uninstallAllLabel": "Alle deinstallieren",
+  "uninstallConfirmation": "Bist du dir absolut sicher?",
+  "uninstallModsDesc": "Diese Aktion kann nicht rückgängig gemacht werden. Dies wird die Mod und seine Daten löschen.",
+  "uninstallAllMods": "Alle deinstallieren",
+  "uninstallAllModsDesc": "Diese Aktion kann nicht rückgängig gemacht werden. Dies wird mehrere Mods und ihre Daten löschen.",
 
   "currentMods": "Aktivierte Mods",
   "installedMods": "Installierte Mods",
-  "unselect": "Unselect all",
+  "unselect": "Alle entmakieren",
   "uninstall": "Deinstallieren",
   "uninstallAll": "Alle deinstallieren",
   "start": "Spiel starten",

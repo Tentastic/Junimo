@@ -3,6 +3,50 @@
 version = 3
 
 [[package]]
+name = "Junimo"
+version = "1.0.0"
+dependencies = [
+ "ansi-to-html",
+ "anyhow",
+ "async-std",
+ "bincode",
+ "cargo-tarpaulin",
+ "dirs",
+ "futures-util",
+ "json-strip-comments",
+ "mockall",
+ "pelite",
+ "portable-pty",
+ "rand 0.8.5",
+ "regex",
+ "reqwest 0.12.4",
+ "rfd",
+ "semver",
+ "serde",
+ "serde_json",
+ "smol",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-process",
+ "tauri-plugin-shell",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tempfile",
+ "tokio",
+ "tokio-tungstenite",
+ "tungstenite",
+ "url",
+ "walkdir",
+ "widestring",
+ "winapi",
+ "winreg 0.52.0",
+ "zip 1.1.2",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2690,50 +2734,6 @@ name = "json-strip-comments"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d129799327c8f80861e467c59b825ba24c277dba6ad0d71a141dc98f9e04ee"
-
-[[package]]
-name = "junimo"
-version = "0.9.6"
-dependencies = [
- "ansi-to-html",
- "anyhow",
- "async-std",
- "bincode",
- "cargo-tarpaulin",
- "dirs",
- "futures-util",
- "json-strip-comments",
- "mockall",
- "pelite",
- "portable-pty",
- "rand 0.8.5",
- "regex",
- "reqwest 0.12.4",
- "rfd",
- "semver",
- "serde",
- "serde_json",
- "smol",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-process",
- "tauri-plugin-shell",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tempfile",
- "tokio",
- "tokio-tungstenite",
- "tungstenite",
- "url",
- "walkdir",
- "widestring",
- "winapi",
- "winreg 0.52.0",
- "zip 1.1.2",
-]
 
 [[package]]
 name = "keyboard-types"

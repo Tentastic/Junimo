@@ -16,8 +16,8 @@
       "icons/icon.ico"
     ]
   },
-  "productName": "junimo",
-  "version": "0.9.6",
+  "productName": "Junimo",
+  "version": "1.0.0",
   "identifier": "Junimo",
   "plugins": {
     "updater": {

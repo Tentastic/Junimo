@@ -182,6 +182,30 @@ pub fn remove_profile<R: Runtime>(
 }
 
 #[command]
+pub fn duplicate_profile(handle: tauri::AppHandle, from: String, name: String) -> Vec<Profile> {
+    let profiles = get_profiles(paths::profile_path());
+
+    let mut new_profiles: Vec<Profile> = Vec::new();
+    let mut duplicate_profile: Profile = Profile {
+        name,
+        mods: vec![],
+        currently: false,
+    };
+    for profile in profiles {
+        if (profile.name == from) {
+            duplicate_profile.mods = profile.clone().mods;
+        }
+        new_profiles.push(profile);
+    }
+    new_profiles.push(duplicate_profile);
+    save_profiles(&new_profiles, &paths::profile_path());
+    handle
+        .emit("profile-update", &new_profiles)
+        .expect("Failed to emit event");
+    new_profiles
+}
+
+#[command]
 pub fn modify_profile<R: Runtime>(
     handle: tauri::AppHandle<R>,
     name: &str,

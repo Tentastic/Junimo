@@ -10,6 +10,7 @@ use tauri::{command, Manager, Runtime, WebviewUrl, WebviewWindow, Window};
 use winreg::enums::HKEY_CLASSES_ROOT;
 #[cfg(target_os = "windows")]
 use winreg::RegKey;
+use crate::app::api::nexuswebsocket;
 
 use crate::app::app_state::AppState;
 use crate::app::utility::paths;
@@ -116,6 +117,16 @@ pub fn init_config<R: Runtime>(
     }
 
     Ok(None)
+}
+
+#[command]
+pub fn load_api_key() -> String {
+    nexuswebsocket::load_key()
+}
+
+#[command]
+pub fn set_api_key(key: String) {
+    nexuswebsocket::save_key(key);
 }
 
 #[cfg(target_os = "windows")]
