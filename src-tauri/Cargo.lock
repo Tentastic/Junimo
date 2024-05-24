@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "Junimo"
-version = "0.9.6"
+version = "1.0.0"
 dependencies = [
  "ansi-to-html",
  "anyhow",
