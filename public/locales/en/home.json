@@ -20,6 +20,13 @@
   "helpUpdater": "Check for Updates",
   "helpSmapi": "Check for SMAPI Updates",
 
+  "uninstallLabel": "Uninstall",
+  "uninstallAllLabel": "Uninstall All",
+  "uninstallConfirmation": "Are you absolutely sure?",
+  "uninstallModsDesc": " This action cannot be undone. This will permanently delete the mod and all it's associated data.",
+  "uninstallAllMods": "Uninstall all mods",
+  "uninstallAllModsDesc": "This action cannot be undone. This will permanently delete multiple mods and all it's associated data.",
+
   "currentMods": "Current Mods",
   "installedMods": "Installed Mods",
   "unselect": "Unselect all",
