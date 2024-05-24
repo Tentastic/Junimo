@@ -41,8 +41,8 @@ If you want to build Junimo yourself, you can do so by following these steps:
 ```
 git clone https://github.com/Tentastic/Junimo.git
 cd Junimo
-npm install
-npm run tauri build
+bum install
+bun run tauri build
 ```
 
 ## 🚀 Planned for the future
